@@ -1,102 +1,101 @@
 #!/bin/bash
 set -e
 
-echo "🚀 بدء تجهيز المشروع الكامل (Fabric + Caliper)..."
+# تعريف الألوان للنصوص
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo -e "${GREEN}🚀 Starting Full Project Setup (Fabric + Caliper)...${NC}"
 echo "=================================================="
 
-# ============================================================
-# المرحلة 1: تحميل أدوات Hyperledger Fabric
-# ============================================================
-echo ""
-echo "📦 المرحلة 1: التحقق من أدوات Fabric..."
-
+# --------------------------------------------------------
+# 1. التأكد من وجود الأدوات
+# --------------------------------------------------------
+echo -e "${GREEN}📦 Step 1: Checking Fabric Binaries...${NC}"
 if [ ! -d "bin" ]; then
-    echo "⬇️  جاري تحميل أدوات Fabric (Binaries) - قد يستغرق بضع دقائق..."
+    echo "⬇️ Downloading Fabric tools..."
     curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.9 1.5.7
-    echo "✅ تم تحميل الأدوات بنجاح"
 else
-    echo "✅ الأدوات موجودة مسبقاً"
+    echo "✅ Fabric tools found."
 fi
 
-# ============================================================
-# المرحلة 2: تشغيل شبكة Fabric
-# ============================================================
-echo ""
-echo "🌐 المرحلة 2: تشغيل شبكة Fabric..."
+export PATH=${PWD}/bin:$PATH
+export FABRIC_CFG_PATH=${PWD}/config/
 
-cd test-network || { echo "❌ مجلد test-network غير موجود!"; exit 1; }
-
-# منح صلاحيات التنفيذ
-echo "🔓 منح صلاحيات التنفيذ..."
-chmod -R +x .
-
-# تنظيف الشبكة القديمة
-echo "🧹 تنظيف أي شبكة سابقة..."
+# --------------------------------------------------------
+# 2. تشغيل الشبكة
+# --------------------------------------------------------
+echo -e "${GREEN}🌐 Step 2: Starting Fabric Network...${NC}"
+cd test-network
 ./network.sh down
+./network.sh up createChannel -c mychannel -ca
+cd ..
 
-# تشغيل الشبكة مع CA
-echo "🚀 تشغيل الشبكة وإنشاء القناة (mychannel)..."
-./network.sh up createChannel -ca
+# --------------------------------------------------------
+# 3. نشر العقد الذكي
+# --------------------------------------------------------
+echo -e "${GREEN}📜 Step 3: Deploying Smart Contract (Go)...${NC}"
+cd test-network
+./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go
+cd ..
 
-if [ $? -ne 0 ]; then
-    echo "❌ فشل تشغيل الشبكة!"
-    exit 1
+# --------------------------------------------------------
+# 4. إعداد وتشغيل Caliper (الجزء الذكي)
+# --------------------------------------------------------
+echo -e "${GREEN}⚡ Step 4: Configuring & Running Caliper...${NC}"
+cd caliper-workspace
+
+# أ) تثبيت المكتبات إذا لم تكن موجودة
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing Caliper dependencies..."
+    npm install
+    npx caliper bind --caliper-bind-sut fabric:2.2
 fi
 
-echo "✅ الشبكة تعمل بنجاح"
+# ب) البحث عن المفتاح الخاص (Private Key) أوتوماتيكياً
+echo "🔑 Detecting Private Key..."
+KEY_DIR="../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore"
+PVT_KEY=$(ls $KEY_DIR/*_sk)
+echo "✅ Found Key: $PVT_KEY"
 
-# ============================================================
-# المرحلة 3: نشر العقد الذكي (Go)
-# ============================================================
-echo ""
-echo "📜 المرحلة 3: نشر العقد الذكي (chaincode-go)..."
+# ج) إنشاء ملف إعدادات الشبكة بالمسار الصحيح
+echo "⚙️ Generating network config..."
+mkdir -p networks
+cat << EOF > networks/networkConfig.yaml
+name: Caliper-Fabric
+version: "2.0.0"
 
-./network.sh deployCC \
-  -ccn basic \
-  -ccp ../asset-transfer-basic/chaincode-go \
-  -ccl go
+caliper:
+  blockchain: fabric
 
-if [ $? -ne 0 ]; then
-    echo "❌ فشل نشر العقد الذكي!"
-    exit 1
-fi
+channels:
+  - channelName: mychannel
+    contracts:
+      - id: basic
 
-echo "✅ تم نشر العقد الذكي بنجاح"
+organizations:
+  - mspid: Org1MSP
+    identities:
+      certificates:
+        - name: 'User1'
+          clientPrivateKey:
+            path: '$PVT_KEY'
+          clientSignedCert:
+            path: '../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/User1@org1.example.com-cert.pem'
+    connectionProfile:
+      path: '../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml'
+      discover: true
+EOF
 
-# ============================================================
-# المرحلة 4: إعداد وتشغيل Caliper
-# ============================================================
-echo ""
-echo "⚡ المرحلة 4: إعداد وتشغيل Caliper..."
+# د) تشغيل الاختبار
+echo "🔥 Running Benchmarks..."
+npx caliper launch manager \
+    --caliper-workspace . \
+    --caliper-networkconfig networks/networkConfig.yaml \
+    --caliper-benchconfig benchmarks/benchConfig.yaml \
+    --caliper-flow-only-test
 
-cd ../caliper-workspace || { echo "❌ مجلد caliper-workspace غير موجود!"; exit 1; }
-
-# التحقق من وجود السكربت
-if [ ! -f "fix_and_run_caliper.sh" ]; then
-    echo "❌ ملف fix_and_run_caliper.sh غير موجود!"
-    exit 1
-fi
-
-# منح صلاحيات التنفيذ
-chmod +x fix_and_run_caliper.sh
-
-# تشغيل Caliper
-echo "🔥 تشغيل اختبار الأداء..."
-./fix_and_run_caliper.sh
-
-# ============================================================
-# النهاية
-# ============================================================
-echo ""
-echo "=================================================="
-echo "🎉 تم الانتهاء من جميع المراحل بنجاح!"
-echo "=================================================="
-echo ""
-echo "📊 النتائج:"
-echo "  - الشبكة: تعمل ✅"
-echo "  - العقد الذكي (Go): منشور ✅"
-echo "  - اختبار Caliper: مكتمل ✅"
-echo ""
-echo "📄 لعرض التقرير:"
-echo "  افتح ملف: caliper-workspace/report.html"
-echo ""
+echo -e "${GREEN}==================================================${NC}"
+echo -e "${GREEN}🎉 Project Finished Successfully!${NC}"
+echo -e "${GREEN}📄 Report: caliper-workspace/report.html${NC}"
