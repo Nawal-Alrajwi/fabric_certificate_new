@@ -12,7 +12,7 @@ rounds:
       opts:
         tps: 50
     workload:
-      module: benchmarks/samples/fabric/fabcar/issueCertificate.js
+      module: workload/issueCertificate.js
       arguments:
         assets: 10000
         contractId: caliperfabcar
@@ -24,7 +24,7 @@ rounds:
       opts:
         tps: 20
     workload:
-      module: benchmarks/samples/fabric/fabcar/revokeCertificate.js
+      module: workload/revokeCertificate.js
       arguments:
         assets: 1000
         contractId: caliperfabcar
@@ -36,7 +36,7 @@ rounds:
       opts:
         tps: 200
     workload:
-      module: benchmarks/samples/fabric/fabcar/verifyCertificate.js
+      module: workload/verifyCertificate.js
       arguments:
         assets: 10000
         contractId: caliperfabcar
@@ -48,7 +48,7 @@ rounds:
       opts:
         tps: 100
     workload:
-      module: benchmarks/samples/fabric/fabcar/queryAllCertificates.js
+      module: workload/queryAllCertificates.js
       arguments:
         assets: 1000
         contractId: caliperfabcar
