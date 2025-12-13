@@ -1,46 +1,54 @@
-test:
-  name: certificate-benchmark-test
-  description: Test issuing, verifying, and revoking certificates.
-  workers:
-    type: local
-    number: 2
-  rounds:
-    - label: Issue Certificates
-      description: Issuing new certificates (using CreateAsset).
-      txNumber: 20
-      rateControl:
-        type: fixed-load
-        opts:
-          transactionLoad: 2
-      workload:
-        module: workload/issueCertificate.js
-
-    - label: Verify a Certificate
-      description: Verifying certificates exist (using ReadAsset).
-      txNumber: 20
-      rateControl:
-        type: fixed-load
-        opts:
-          transactionLoad: 2
-      workload:
-        module: workload/verifyCertificate.js
-
-    - label: Query All Certificates
-      description: Browsing all certificates (using GetAllAssets).
-      txNumber: 5
-      rateControl:
-        type: fixed-load
-        opts:
-          transactionLoad: 1
-      workload:
-        module: workload/queryAllCertificates.js
-
-    - label: Revoke Certificate
-      description: Revoking/Deleting certificates (using DeleteAsset).
-      txNumber: 20
-      rateControl:
-        type: fixed-load
-        opts:
-          transactionLoad: 2
-      workload:
-        module: workload/revokeCertificate.js
+name: certificate-benchmark-test
+description: 'Test issuing, verifying, and revoking certificates.'
+workers:
+  type: local
+  number: 5
+rounds:
+  - label: Issue Certificates
+    description: Benchmark round for issuing new certificates on the ledger.
+    txDuration: 30
+    rateControl:
+      type: fixed-rate
+      opts:
+        tps: 50
+    workload:
+      module: benchmarks/samples/fabric/fabcar/issueCertificate.js
+      arguments:
+        assets: 10000
+        contractId: caliperfabcar
+  - label: Revoke Certificate
+    description: Benchmark round for revoking an existing certificate (Write).
+    txDuration: 30
+    rateControl:
+      type: fixed-rate
+      opts:
+        tps: 20
+    workload:
+      module: benchmarks/samples/fabric/fabcar/revokeCertificate.js
+      arguments:
+        assets: 1000
+        contractId: caliperfabcar
+  - label: Verify a Certificate
+    description: Benchmark round for querying a single certificate by ID (Read).
+    txDuration: 30
+    rateControl:
+      type: fixed-rate
+      opts:
+        tps: 200
+    workload:
+      module: benchmarks/samples/fabric/fabcar/verifyCertificate.js
+      arguments:
+        assets: 10000
+        contractId: caliperfabcar
+  - label: Query All Certificates
+    description: Benchmark round for querying all certificates on the ledger (Read All).
+    txDuration: 30
+    rateControl:
+      type: fixed-rate
+      opts:
+        tps: 100
+    workload:
+      module: benchmarks/samples/fabric/fabcar/queryAllCertificates.js
+      arguments:
+        assets: 1000
+        contractId: caliperfabcar
