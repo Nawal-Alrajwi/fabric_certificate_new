@@ -15,7 +15,7 @@ rounds:
       module: workload/issueCertificate.js
       arguments:
         assets: 10000
-        contractId: caliperfabcar
+        contractId: basic
   - label: Revoke Certificate
     description: Benchmark round for revoking an existing certificate (Write).
     txDuration: 30
@@ -27,7 +27,7 @@ rounds:
       module: workload/revokeCertificate.js
       arguments:
         assets: 1000
-        contractId: caliperfabcar
+        contractId: basic
   - label: Verify a Certificate
     description: Benchmark round for querying a single certificate by ID (Read).
     txDuration: 30
@@ -39,7 +39,7 @@ rounds:
       module: workload/verifyCertificate.js
       arguments:
         assets: 10000
-        contractId: caliperfabcar
+        contractId: basic
   - label: Query All Certificates
     description: Benchmark round for querying all certificates on the ledger (Read All).
     txDuration: 30
@@ -51,4 +51,4 @@ rounds:
       module: workload/queryAllCertificates.js
       arguments:
         assets: 1000
-        contractId: caliperfabcar
+        contractId: basic
