@@ -20,8 +20,8 @@ test:
       txDuration: 30
       rateControl:
         type: fixed-rate
-      opts:
-        tps: 50
+        opts:
+          tps: 50
       workload:
         module: workload/verifyCertificate.js
 
@@ -29,9 +29,9 @@ test:
       description: Browsing all certificates (using GetAllAssets).
       txDuration: 30
       rateControl:
-        type: fixed-rate
-        opts:
-          tps: 200
+       type: fixed-rate
+       opts:
+          tps: 20
       workload:
         module: workload/queryAllCertificates.js
 
@@ -39,8 +39,8 @@ test:
       description: Revoking/Deleting certificates (using DeleteAsset).
       txDuration: 30
       rateControl:
-        type: fixed-rate
-        opts:
-          tps: 100
+       type: fixed-rate
+       opts:
+         tps: 100
       workload:
         module: workload/revokeCertificate.js
