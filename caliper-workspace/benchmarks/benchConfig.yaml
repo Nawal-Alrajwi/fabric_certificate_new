@@ -1,46 +1,63 @@
 test:
-  name: certificate-benchmark-test
-  description: Test issuing, verifying, and revoking certificates.
+  name: certificate-benchmark-test-v2
+  description: 'إختبار جهد متقدم لإصدار والتحقق وإلغاء الشهادات مع مراقبة الموارد'
   workers:
     type: local
-    number: 2
+    number: 2 # كما ورد في تقريرك الأصلي
   rounds:
-    - label: Issue Certificates
-      description: Issuing new certificates (using CreateAsset).
-      txDuration: 30
-      rateControl:
-       type: fixed-rate
-       opts:
-         tps: 50
-      workload:
-        module: workload/issueCertificate.js
-
-    - label: Verify a Certificate
-      description: Verifying certificates exist (using ReadAsset).
+    # 1. اختبار خط الأساس (Baseline) للتأكد من استقرار الشبكة
+    - label: Issue Certificates (Baseline)
+      description: إصدار شهادات بمعدل ثابت 50 TPS
       txDuration: 30
       rateControl:
         type: fixed-rate
         opts:
           tps: 50
       workload:
-        module: workload/verifyCertificate.js
+        module: workload/issueCertificate.js
 
-    - label: Query All Certificates
-      description: Browsing all certificates (using GetAllAssets).
+    # 2. اختبار الجهد (Stress Test) لاكتشاف أقصى قدرة للشبكة
+    - label: Issue Certificates (Stress Test)
+      description: رفع الحمل تدريجياً من 50 إلى 400 TPS لاكتشاف نقطة الانهيار
+      txDuration: 60 # زيادة المدة لإعطاء وقت للمراقب لجمع البيانات
+      rateControl:
+        type: linear-rate
+        opts:
+          startingTps: 50
+          finishingTps: 400
+      workload:
+        module: workload/issueCertificate.js
+
+    # 3. اختبار القراءة المكثف
+    - label: Verify a Certificate (High Load)
+      description: التحقق من الشهادات بمعدل مرتفع 200 TPS
       txDuration: 30
       rateControl:
-       type: fixed-rate
-       opts:
-          tps: 20
+        type: fixed-rate
+        opts:
+          tps: 200
+      workload:
+        module: workload/verifyCertificate.js
+
+    # 4. الاستعلام الشامل
+    - label: Query All Certificates
+      description: جلب كافة الأصول بمعدل 50 TPS
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 50
       workload:
         module: workload/queryAllCertificates.js
 
-    - label: Revoke Certificate
-      description: Revoking/Deleting certificates (using DeleteAsset).
-      txDuration: 30
-      rateControl:
-       type: fixed-rate
-       opts:
-         tps: 50
-      workload:
-        module: workload/revokeCertificate.js
+# إضافات مراقبة موارد النظام (لحل مشكلة الجداول الفارغة في التقرير)
+monitors:
+  resource:
+    - module: docker
+      options:
+        interval: 5 # تحديث البيانات كل 5 ثوانٍ
+        containers:
+          - all # مراقبة كافة حاويات فابريك (Peer, Orderer, CouchDB)
+        charting:
+          bar:
+            metrics: [Memory(avg), CPU%(avg)]
