@@ -3,7 +3,15 @@ set -e
 
 # 1. تنظيف أي إعدادات سابقة للشبكة
 sudo tc qdisc del dev eth0 root || true
+echo "🚀 جاري بدء عملية الإصلاح والتجهيز..."
 
+# 1. تحميل أدوات Hyperledger Fabric
+if [ ! -d "bin" ]; then
+    echo "⬇ جاري تحميل الأدوات (Binaries)..."
+    curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.9 1.5.7
+else
+    echo "✅ الأدوات موجودة مسبقاً."
+fi
 echo "🚀 Starting Full Project Setup (Fabric + Caliper)..."
 
 # 2. إعداد المسارات الأساسية
