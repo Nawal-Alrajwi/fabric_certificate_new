@@ -5,14 +5,23 @@ const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
 class IssueDiplomaBatchWorkload extends WorkloadModuleBase {
     constructor() {
         super();
-        this.batchSize = 10; // عدد الشهادات في الدفعة الواحدة - يمكنك رفعه لزيادة الأداء
+        this.batchSize = 10; 
     }
 
     async submitTransaction() {
         let diplomas = [];
         
-        // إنشاء مجموعة (Batch) من الشهادات ببيانات عشوائية محاكية للواقع
-        for (let i = 0; i < this.batchSize; i++) {
+        // 1. إضافة الشهادة الثابتة لضمان نجاح جولة التحقق (Verify) بنسبة 100%
+        diplomas.push({
+            DiplomaID: 'DIP_TEST', // المعرف الثابت الذي سنستخدمه في ملف verifyDiploma.js
+            StudentName: 'Reference Student',
+            University: 'UPI University',
+            Degree: 'Doctorate',
+            GraduationYear: 2025
+        });
+
+        // 2. إكمال بقية الدفعة ببيانات عشوائية (نبدأ من 1 لأننا أضفنا واحدة يدوياً)
+        for (let i = 1; i < this.batchSize; i++) {
             const diplomaId = 'DIP_' + Math.random().toString(36).substr(2, 9);
             diplomas.push({
                 DiplomaID: diplomaId,
@@ -23,7 +32,6 @@ class IssueDiplomaBatchWorkload extends WorkloadModuleBase {
             });
         }
 
-        // تحويل المصفوفة إلى JSON string لإرسالها للـ Chaincode
         const args = {
             contractId: 'diploma',
             contractFunction: 'CreateDiplomaBatch',
