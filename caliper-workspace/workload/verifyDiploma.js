@@ -11,14 +11,15 @@ class VerifyDiplomaWorkload extends WorkloadModuleBase {
     async submitTransaction() {
         this.txIndex++;
         
-        // التعديل هنا: البحث عن المعرف الثابت المضمن في كل دفعة إصدار
+        // استخدام معرف موجود تم إصداره مسبقاً في جولة الـ Issue
         const certID = 'DIP_TEST'; 
 
         const request = {
             contractId: 'diploma',
-            contractFunction: 'ReadDiploma', 
+            // التعديل الجوهري: استدعاء دالة التحقق الأمنية وليس مجرد القراءة
+            contractFunction: 'VerifyDiploma', 
             contractArguments: [certID],
-            readOnly: true // معاملات القراءة يتم ضبطها كـ true لتحسين الأداء
+            readOnly: true 
         };
 
         await this.sutAdapter.sendRequests(request);
