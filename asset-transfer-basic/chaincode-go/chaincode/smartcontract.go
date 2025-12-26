@@ -183,14 +183,20 @@ func (s *SmartContract) GetAllDiplomas(ctx contractapi.TransactionContextInterfa
 // RevokeCertificate removes a diploma from the ledger to ensure records integrity
 // This function represents the "Revocation" phase in the certificate lifecycle
 func (s *SmartContract) RevokeCertificate(ctx contractapi.TransactionContextInterface, id string, reason string) error {
-	exists, err := s.DiplomaExists(ctx, id)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("the diploma %s does not exist", id)
-	}
+    // 1. تشفير الـ ID باستخدام SHA-3 ليتطابق مع ما تم تخزينه
+    hash := sha3.New256()
+    hash.Write([]byte(id))
+    hashedID := hex.EncodeToString(hash.Sum(nil))
 
-	// يمكن مستقبلاً تخزين "سبب الإلغاء" في سجل منفصل، حالياً نقوم بحذف الحالة
-	return ctx.GetStub().DelState(id)
+    // 2. التحقق من الوجود باستخدام المفتاح المشفر
+    exists, err := s.DiplomaExists(ctx, hashedID) // تأكد أن DiplomaExists تقبل الـ hashedID
+    if err != nil {
+        return err
+    }
+    if !exists {
+        return fmt.Errorf("the diploma with hashed ID %s does not exist", hashedID)
+    }
+
+    // 3. الحذف باستخدام المفتاح المشفر
+    return ctx.GetStub().DelState(hashedID)
 }
