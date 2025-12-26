@@ -45,8 +45,8 @@ cd test-network
 cd ..
 
 # 6. محاكاة تأخير ورقة 2025 (200ms)
-echo "🌐 Simulating Network Delay (200ms) on eth0..."
-sudo tc qdisc add dev eth0 root netem delay 200ms
+#echo "🌐 Simulating Network Delay (200ms) on eth0..."
+#sudo tc qdisc add dev eth0 root netem delay 200ms
 
 # 7. إعداد Caliper وتشغيل الاختبار
 cd caliper-workspace
