@@ -5,22 +5,28 @@ const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
 class RevokeCertificateWorkload extends WorkloadModuleBase {
     constructor() {
         super();
-        this.txIndex = 0;
+    }
+
+    async initializeWorkloadModule(workerIndex, totalWorkers, numberofIndices, sutAdapter, sutContext) {
+        await super.initializeWorkloadModule(workerIndex, totalWorkers, numberofIndices, sutAdapter, sutContext);
     }
 
     async submitTransaction() {
-        this.txIndex++;
-        // نحذف نفس الشهادة التي تم إنشاؤها
-        const certID = `cert_${this.workerIndex}_${this.txIndex}`;
+        // 1. تحديد النمط: يجب أن يكون مطابقاً تماماً لما تم استخدامه في issueDiplomaBatch.js
+        // نحن نفترض هنا أن الإصدار استخدم النمط: "Cert_WorkerIndex_TransactionIndex"
+        
+        // توليد رقم عشوائي ضمن نطاق المعاملات التي تمت في مرحلة الإصدار (مثلاً أول 100 معاملة)
+        const randomTxIndex = Math.floor(Math.random() * 100); 
+        const certID = `Cert_${this.workerIndex}_${randomTxIndex}`;
 
-        const request = {
-            contractId: 'basic',
-            contractFunction: 'DeleteAsset',
-            contractArguments: [certID],
+        const requestSettings = {
+            contractId: 'diploma',
+            contractFunction: 'RevokeCertificate',
+            contractArguments: [certID, 'Administrative decision for revocation'],
             readOnly: false
         };
 
-        await this.sutAdapter.sendRequests(request);
+        await this.sutAdapter.sendRequests(requestSettings);
     }
 }
 
