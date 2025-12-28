@@ -7,23 +7,23 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-// CertificateSmartContract لخدمة إدارة الشهادات الإلكترونية
+// SmartContract لخدمة إدارة الشهادات الإلكترونية
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// Certificate يمثل هيكل الشهادة الرقمية المخزنة على البلوكشين
+// Certificate يمثل هيكل الشهادة الرقمية
 type Certificate struct {
-	ID             string `json:"ID"`             // الرقم التسلسلي للشهادة
-	StudentName    string `json:"StudentName"`    // اسم الطالب
-	Major          string `json:"Major"`          // التخصص العلمي
-	University     string `json:"University"`     // الجامعة المصدرة
-	IssueDate      string `json:"IssueDate"`      // تاريخ الإصدار
-	Grade          string `json:"Grade"`          // التقدير العام
-	IssuerID       string `json:"IssuerID"`       // معرف الجهة الموقعة (للحماية)
+	ID          string `json:"ID"`
+	StudentName string `json:"StudentName"`
+	Major       string `json:"Major"`
+	University  string `json:"University"`
+	IssueDate   string `json:"IssueDate"`
+	Grade       string `json:"Grade"`
+	IssuerID    string `json:"IssuerID"`
 }
 
-// IssueCertificate إصدار شهادة جديدة وإضافتها إلى الليدجر
+// IssueCertificate إصدار شهادة جديدة
 func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInterface, id string, studentName string, major string, university string, issueDate string, grade string, issuerID string) error {
 	exists, err := s.CertificateExists(ctx, id)
 	if err != nil {
@@ -50,7 +50,7 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 	return ctx.GetStub().PutState(id, certJSON)
 }
 
-// QueryCertificate استرجاع بيانات شهادة معينة باستخدام الرقم التسلسلي
+// QueryCertificate استرجاع بيانات شهادة
 func (s *SmartContract) QueryCertificate(ctx contractapi.TransactionContextInterface, id string) (*Certificate, error) {
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
@@ -69,8 +69,8 @@ func (s *SmartContract) QueryCertificate(ctx contractapi.TransactionContextInter
 	return &cert, nil
 }
 
-// RevokeCertificate إلغاء شهادة (حذفها من الحالة الحالية) في حالة التزوير أو الخطأ
-func (s *CertificateSmartContract) RevokeCertificate(ctx contractapi.TransactionContextInterface, id string) error {
+// RevokeCertificate تم تصحيح اسم الهيكل هنا
+func (s *SmartContract) RevokeCertificate(ctx contractapi.TransactionContextInterface, id string) error {
 	exists, err := s.CertificateExists(ctx, id)
 	if err != nil {
 		return err
@@ -82,7 +82,7 @@ func (s *CertificateSmartContract) RevokeCertificate(ctx contractapi.Transaction
 	return ctx.GetStub().DelState(id)
 }
 
-// CertificateExists التحقق من وجود الشهادة
+// CertificateExists التحقق من الوجود
 func (s *SmartContract) CertificateExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
@@ -92,7 +92,7 @@ func (s *SmartContract) CertificateExists(ctx contractapi.TransactionContextInte
 	return certJSON != nil, nil
 }
 
-// GetAllCertificates عرض قائمة بجميع الشهادات المسجلة
+// GetAllCertificates جلب الكل
 func (s *SmartContract) GetAllCertificates(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
 	if err != nil {
