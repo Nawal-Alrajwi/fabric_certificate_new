@@ -35,9 +35,12 @@ cd test-network
 cd ..
 
 # 5. تشغيل اختبارات Caliper
-echo -e "${GREEN}⚡ الخطوة 4: تشغيل اختبار الأداء (Caliper)...${NC}"
-cd caliper-workspace
 
+# 4. إعداد بيئة Caliper (لحل مشكلة npm error)
+echo -e "${GREEN}⚙️ الخطوة 4: تهيئة Caliper وربط المكتبات...${NC}"
+cd caliper-workspace
+npm install
+npx caliper bind --caliper-bind-sut fabric:2.2
 # التحقق من وجود المفتاح الخاص أوتوماتيكياً
 echo "🔑 البحث عن المفتاح الخاص للـ Admin..."
 KEY_DIR="../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore"
