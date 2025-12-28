@@ -1,79 +1,58 @@
 #!/bin/bash
 set -e
 
-# تعريف الألوان للنصوص
+# تعريف الألوان
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${GREEN}🚀 Starting Full Project Setup (Fabric + Caliper)...${NC}"
+echo -e "${GREEN}🚀 البدء في إعداد المشروع وتثبيت العقد الذكي للشهادات...${NC}"
 echo "=================================================="
 
-# --------------------------------------------------------
-# 1. التأكد من وجود الأدوات
-# --------------------------------------------------------
-echo -e "${GREEN}📦 Step 1: Checking Fabric Binaries...${NC}"
-if [ ! -d "bin" ]; then
-    echo "⬇️ Downloading Fabric tools..."
-    curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.9 1.5.7
-else
-    echo "✅ Fabric tools found."
-fi
-
+# 1. إعداد المسارات (Environment Path)
 export PATH=${PWD}/bin:$PATH
 export FABRIC_CFG_PATH=${PWD}/config/
 
-# --------------------------------------------------------
-# 2. تشغيل الشبكة
-# --------------------------------------------------------
-echo -e "${GREEN}🌐 Step 2: Starting Fabric Network...${NC}"
+# 2. تنظيف وإعادة تشغيل شبكة Fabric
+echo -e "${GREEN}🌐 الخطوة 1: إعادة تشغيل الشبكة...${NC}"
 cd test-network
 ./network.sh down
 ./network.sh up createChannel -c mychannel -ca
 cd ..
 
-# --------------------------------------------------------
-# 3. نشر العقد الذكي
-# --------------------------------------------------------
-echo -e "${GREEN}📜 Step 3: Deploying Smart Contract (Go)...${NC}"
+# 3. تحديث مكتبات Go وتصحيح العقد الذكي
+echo -e "${GREEN}📦 الخطوة 2: تحديث مكتبات العقد الذكي (Go)...${NC}"
+pushd asset-transfer-basic/chaincode-go
+# هذا الأمر يحل مشكلة الـ Undefined ويحمل المكتبات المطلوبة
+go mod tidy
+popd
+
+# 4. نشر العقد الذكي (Deploy)
+echo -e "${GREEN}📜 الخطوة 3: نشر العقد الذكي للشهادات...${NC}"
 cd test-network
+# استخدام المسار الدقيق كما يظهر في صورك
 ./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go
 cd ..
 
-# --------------------------------------------------------
-# 4. إعداد وتشغيل Caliper (الجزء الذكي)
-# --------------------------------------------------------
-echo -e "${GREEN}⚡ Step 4: Configuring & Running Caliper...${NC}"
+# 5. تشغيل اختبارات Caliper
+echo -e "${GREEN}⚡ الخطوة 4: تشغيل اختبار الأداء (Caliper)...${NC}"
 cd caliper-workspace
 
-# أ) تثبيت المكتبات إذا لم تكن موجودة
-if [ ! -d "node_modules" ]; then
-    echo "📦 Installing Caliper dependencies..."
-    npm install
-    npx caliper bind --caliper-bind-sut fabric:2.2
-fi
-
-# ب) البحث عن المفتاح الخاص (Private Key) أوتوماتيكياً
-echo "🔑 Detecting Private Key..."
+# التحقق من وجود المفتاح الخاص أوتوماتيكياً
+echo "🔑 البحث عن المفتاح الخاص للـ Admin..."
 KEY_DIR="../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore"
 PVT_KEY=$(ls $KEY_DIR/*_sk)
-echo "✅ Found Key: $PVT_KEY"
 
-# ج) إنشاء ملف إعدادات الشبكة بالمسار الصحيح
-echo "⚙️ Generating network config..."
-mkdir -p networks
+# إنشاء ملف إعدادات الشبكة
 cat << EOF > networks/networkConfig.yaml
 name: Caliper-Fabric
 version: "2.0.0"
-
 caliper:
   blockchain: fabric
-
 channels:
   - channelName: mychannel
     contracts:
       - id: basic
-
 organizations:
   - mspid: Org1MSP
     identities:
@@ -88,8 +67,7 @@ organizations:
       discover: true
 EOF
 
-# د) تشغيل الاختبار
-echo "🔥 Running Benchmarks..."
+# تنفيذ الاختبار
 npx caliper launch manager \
     --caliper-workspace . \
     --caliper-networkconfig networks/networkConfig.yaml \
@@ -97,5 +75,4 @@ npx caliper launch manager \
     --caliper-flow-only-test
 
 echo -e "${GREEN}==================================================${NC}"
-echo -e "${GREEN}🎉 Project Finished Successfully!${NC}"
-echo -e "${GREEN}📄 Report: caliper-workspace/report.html${NC}"
+echo -e "${GREEN}🎉 تم الانتهاء بنجاح! راجع ملف report.html للنتائج.${NC}"
