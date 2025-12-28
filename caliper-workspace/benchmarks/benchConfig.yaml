@@ -27,11 +27,11 @@ test:
 
     - label: Query All Certificates
       description: Browsing all certificates (using GetAllAssets).
-      txNumber: 5
+      txNumber: 20
       rateControl:
         type: fixed-load
         opts:
-          transactionLoad: 1
+          transactionLoad: 2
       workload:
         module: workload/queryAllCertificates.js
 
