@@ -15,7 +15,7 @@ class VerifyCertificateWorkload extends WorkloadModuleBase {
 
         const request = {
             contractId: 'basic',
-            contractFunction: 'ReadAsset',
+            contractFunction: 'GetAllCertificates',
             contractArguments: [certID],
             readOnly: true
         };
