@@ -15,7 +15,7 @@ class IssueCertificateWorkload extends WorkloadModuleBase {
 
         const request = {
             contractId: 'basic',
-            contractFunction: 'CreateAsset',
+            contractFunction: 'IssueCertificate',
             contractArguments: [
                 certID,                     // ID
                 'Student ' + this.txIndex,  // Name
