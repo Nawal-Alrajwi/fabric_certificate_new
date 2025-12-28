@@ -8,7 +8,15 @@ NC='\033[0m'
 
 echo -e "${GREEN}🚀 البدء في إعداد المشروع وتثبيت العقد الذكي للشهادات...${NC}"
 echo "=================================================="
-
+if [ ! -d "bin" ]; then
+    echo "⬇️ Downloading Fabric binaries and Docker images (v2.5.9)..."
+    # هذا الأمر يحمل الأدوات (bin/config) وصور دوكر المطلوبة
+    curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.9 1.5.7
+else
+    echo "✅ Fabric tools found. Pulling/Verifying Docker images..."
+    # التأكد من وجود الصور حتى لو كانت الأدوات موجودة مسبقاً
+    curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.9 1.5.7 -s -b
+fi
 # 1. إعداد المسارات (Environment Path)
 export PATH=${PWD}/bin:$PATH
 export FABRIC_CFG_PATH=${PWD}/config/
