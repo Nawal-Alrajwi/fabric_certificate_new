@@ -17,11 +17,13 @@ class IssueCertificateWorkload extends WorkloadModuleBase {
             contractId: 'basic',
             contractFunction: 'IssueCertificate',
             contractArguments: [
-                certID,                     // ID
-                'Student ' + this.txIndex,  // Name
-                95,                         // Grade (INT required)
-                'Blockchain 101',           // Course
-                2025                        // Year (INT required)
+                certID,                       // id
+                'Student ' + this.txIndex,    // studentName
+                'Computer Science',           // major (تخصص الطالب)
+                'University of Sanaa',        // university (الجامعة)
+                '2025-12-28',                 // issueDate (التاريخ)
+                'Excellent',                  // grade (التقدير)
+                'Admin_01'                    // issuerID (معرف المصدر)
             ],
             readOnly: false
         };
