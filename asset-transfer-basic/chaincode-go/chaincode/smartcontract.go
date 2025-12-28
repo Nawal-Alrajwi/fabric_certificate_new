@@ -8,7 +8,7 @@ import (
 )
 
 // CertificateSmartContract لخدمة إدارة الشهادات الإلكترونية
-type CertificateSmartContract struct {
+type SmartContract struct {
 	contractapi.Contract
 }
 
@@ -24,7 +24,7 @@ type Certificate struct {
 }
 
 // IssueCertificate إصدار شهادة جديدة وإضافتها إلى الليدجر
-func (s *CertificateSmartContract) IssueCertificate(ctx contractapi.TransactionContextInterface, id string, studentName string, major string, university string, issueDate string, grade string, issuerID string) error {
+func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInterface, id string, studentName string, major string, university string, issueDate string, grade string, issuerID string) error {
 	exists, err := s.CertificateExists(ctx, id)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (s *CertificateSmartContract) IssueCertificate(ctx contractapi.TransactionC
 }
 
 // QueryCertificate استرجاع بيانات شهادة معينة باستخدام الرقم التسلسلي
-func (s *CertificateSmartContract) QueryCertificate(ctx contractapi.TransactionContextInterface, id string) (*Certificate, error) {
+func (s *SmartContract) QueryCertificate(ctx contractapi.TransactionContextInterface, id string) (*Certificate, error) {
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return nil, fmt.Errorf("فشل في القراءة من البلوكشين: %v", err)
@@ -83,7 +83,7 @@ func (s *CertificateSmartContract) RevokeCertificate(ctx contractapi.Transaction
 }
 
 // CertificateExists التحقق من وجود الشهادة
-func (s *CertificateSmartContract) CertificateExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+func (s *SmartContract) CertificateExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return false, fmt.Errorf("فشل في قراءة الحالة: %v", err)
@@ -93,7 +93,7 @@ func (s *CertificateSmartContract) CertificateExists(ctx contractapi.Transaction
 }
 
 // GetAllCertificates عرض قائمة بجميع الشهادات المسجلة
-func (s *CertificateSmartContract) GetAllCertificates(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
+func (s *SmartContract) GetAllCertificates(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
 	if err != nil {
 		return nil, err
