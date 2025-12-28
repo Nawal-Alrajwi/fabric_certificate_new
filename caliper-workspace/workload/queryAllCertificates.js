@@ -10,7 +10,7 @@ class QueryAllWorkload extends WorkloadModuleBase {
     async submitTransaction() {
         const request = {
             contractId: 'basic',
-            contractFunction: 'QueryCertificate',
+            contractFunction: 'GetAllCertificates',
             contractArguments: [],
             readOnly: true
         };
