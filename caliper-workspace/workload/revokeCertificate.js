@@ -15,7 +15,7 @@ class RevokeCertificateWorkload extends WorkloadModuleBase {
 
         const request = {
             contractId: 'basic',
-            contractFunction: 'DeleteAsset',
+            contractFunction: 'RevokeCertificate',
             contractArguments: [certID],
             readOnly: false
         };
