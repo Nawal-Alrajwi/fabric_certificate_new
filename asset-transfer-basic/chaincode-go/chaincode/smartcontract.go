@@ -3,16 +3,17 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/sha3" // استخدام SHA-3 المتطورة
+	"encoding/hex"
 
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-// SmartContract لخدمة إدارة الشهادات الإلكترونية
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// Certificate يمثل هيكل الشهادة الرقمية
+// الهيكل المطور للشهادة
 type Certificate struct {
 	ID          string `json:"ID"`
 	StudentName string `json:"StudentName"`
@@ -21,9 +22,17 @@ type Certificate struct {
 	IssueDate   string `json:"IssueDate"`
 	Grade       string `json:"Grade"`
 	IssuerID    string `json:"IssuerID"`
+	CertHash    string `json:"CertHash"` // حقل البصمة الرقمية الجديد
 }
 
-// IssueCertificate إصدار شهادة جديدة
+// دالة داخلية لتوليد بصمة SHA-3
+func calculateSHA3Hash(data string) string {
+	hash := sha3.New256()
+	hash.Write([]byte(data))
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// IssueCertificate المطور
 func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInterface, id string, studentName string, major string, university string, issueDate string, grade string, issuerID string) error {
 	exists, err := s.CertificateExists(ctx, id)
 	if err != nil {
@@ -33,6 +42,10 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 		return fmt.Errorf("الشهادة ذات الرقم %s موجودة مسبقاً", id)
 	}
 
+	// دمج البيانات لتوليد البصمة
+	combinedData := fmt.Sprintf("%s%s%s%s", id, studentName, university, issueDate)
+	certHash := calculateSHA3Hash(combinedData)
+
 	cert := Certificate{
 		ID:          id,
 		StudentName: studentName,
@@ -41,7 +54,9 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 		IssueDate:   issueDate,
 		Grade:       grade,
 		IssuerID:    issuerID,
+		CertHash:    certHash,
 	}
+
 	certJSON, err := json.Marshal(cert)
 	if err != nil {
 		return err
@@ -50,70 +65,32 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 	return ctx.GetStub().PutState(id, certJSON)
 }
 
-// QueryCertificate استرجاع بيانات شهادة
-func (s *SmartContract) QueryCertificate(ctx contractapi.TransactionContextInterface, id string) (*Certificate, error) {
+// VerifyCertificate المطور (لتقليل الـ Latency)
+func (s *SmartContract) VerifyCertificate(ctx contractapi.TransactionContextInterface, id string, providedData string) (bool, error) {
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
-		return nil, fmt.Errorf("فشل في القراءة من البلوكشين: %v", err)
+		return false, fmt.Errorf("فشل في قراءة بيانات الحالة: %v", err)
 	}
 	if certJSON == nil {
-		return nil, fmt.Errorf("الشهادة %s غير موجودة", id)
+		return false, fmt.Errorf("الشهادة %s غير موجودة", id)
 	}
 
 	var cert Certificate
 	err = json.Unmarshal(certJSON, &cert)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	return &cert, nil
+	// التحقق السريع عبر مقارنة بصمة البيانات المدخلة مع البصمة المخزنة
+	currentHash := calculateSHA3Hash(providedData)
+	return cert.CertHash == currentHash, nil
 }
 
-// RevokeCertificate تم تصحيح اسم الهيكل هنا
-func (s *SmartContract) RevokeCertificate(ctx contractapi.TransactionContextInterface, id string) error {
-	exists, err := s.CertificateExists(ctx, id)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("الشهادة %s غير موجودة لإلغائها", id)
-	}
-
-	return ctx.GetStub().DelState(id)
-}
-
-// CertificateExists التحقق من الوجود
+// CertificateExists دالة مساعدة
 func (s *SmartContract) CertificateExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
-		return false, fmt.Errorf("فشل في قراءة الحالة: %v", err)
+		return false, err
 	}
-
 	return certJSON != nil, nil
-}
-
-// GetAllCertificates جلب الكل
-func (s *SmartContract) GetAllCertificates(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
-	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-	if err != nil {
-		return nil, err
-	}
-	defer resultsIterator.Close()
-
-	var certificates []*Certificate
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
-		}
-
-		var cert Certificate
-		err = json.Unmarshal(queryResponse.Value, &cert)
-		if err != nil {
-			return nil, err
-		}
-		certificates = append(certificates, &cert)
-	}
-
-	return certificates, nil
 }
