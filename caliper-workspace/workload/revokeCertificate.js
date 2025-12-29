@@ -8,14 +8,19 @@ class RevokeCertificateWorkload extends WorkloadModuleBase {
         this.txIndex = 0;
     }
 
+    /**
+    * إرسال طلب إلغاء شهادة وحذف بصمتها الرقمية من السجل.
+    */
     async submitTransaction() {
         this.txIndex++;
-        // نحذف نفس الشهادة التي تم إنشاؤها
+        
+        // استخدام نفس المعرف الذي تم إنشاؤه في مرحلة الإصدار لضمان نجاح الحذف
         const certID = `cert_${this.workerIndex}_${this.txIndex}`;
 
         const request = {
             contractId: 'basic',
-            contractFunction: 'RevokeCertificate',
+            // تأكد أن الاسم يطابق الدالة في العقد الذكي المطور (DeleteAsset هي الافتراضية في Fabric)
+            contractFunction: 'DeleteAsset', 
             contractArguments: [certID],
             readOnly: false
         };
