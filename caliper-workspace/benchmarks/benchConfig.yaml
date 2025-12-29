@@ -1,12 +1,12 @@
 test:
   name: certificate-benchmark-test
-  description: Test issuing, verifying, and revoking certificates.
+  description: 'إختبار إصدار، تحقق، وإلغاء الشهادات باستخدام خوارزمية SHA-3 المتطورة.'
   workers:
     type: local
     number: 2
   rounds:
     - label: Issue Certificates
-      description: Issuing new certificates (using CreateAsset).
+      description: 'إصدار شهادات جديدة مع توليد بصمة SHA-3 وحفظها في الـ Ledger.'
       txDuration: 30
       rateControl:
         type: fixed-rate
@@ -16,7 +16,7 @@ test:
         module: workload/issueCertificate.js
 
     - label: Verify a Certificate
-      description: Verifying certificates exist (using ReadAsset).
+      description: 'التحقق السريع من صحة الشهادات عبر مطابقة بصمة SHA-3 (بدلاً من المسح الشامل).'
       txDuration: 30
       rateControl:
         type: fixed-rate
@@ -26,7 +26,7 @@ test:
         module: workload/verifyCertificate.js
 
     - label: Query All Certificates
-      description: Browsing all certificates (using GetAllAssets).
+      description: 'استعلام عن قائمة الشهادات بالكامل لقياس أداء القراءة بعد إضافة البصمات.'
       txDuration: 30
       rateControl:
         type: fixed-rate
@@ -36,7 +36,7 @@ test:
         module: workload/queryAllCertificates.js
 
     - label: Revoke Certificate
-      description: Revoking/Deleting certificates (using DeleteAsset).
+      description: 'إلغاء الشهادات وحذف البصمات المرتبطة بها من قاعدة البيانات.'
       txDuration: 30
       rateControl:
         type: fixed-rate
