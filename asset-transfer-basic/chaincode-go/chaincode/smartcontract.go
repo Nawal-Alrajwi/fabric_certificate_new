@@ -92,30 +92,41 @@ if err != nil {
 currentHash := calculateSHA3Hash(providedData)
 return cert.CertHash == currentHash, nil
 }
-// 4. استعلام عن كل الشهادات (لمعالجة فشل جولة Query All)
-func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
-resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-if err != nil {
-return nil, err
+// 4. استعلام مطور يدعم التقسيم (Pagination) ليتوافق مع ملف Caliper JS
+func (s *SmartContract) GetAllAssetsWithPagination(ctx contractapi.TransactionContextInterface, pageSize int32, bookmark string) (*PaginatedQueryResult, error) {
+    // جلب البيانات على دفعات لتقليل زمن الاستجابة ومنع Timeout
+    resultsIterator, responseMetadata, err := ctx.GetStub().GetStateByRangeWithPagination("", "", pageSize, bookmark)
+    if err != nil {
+        return nil, err
+    }
+    defer resultsIterator.Close()
+
+    var certs []*Certificate
+    for resultsIterator.HasNext() {
+        queryResponse, err := resultsIterator.Next()
+        if err != nil {
+            return nil, err
+        }
+        var cert Certificate
+        err = json.Unmarshal(queryResponse.Value, &cert)
+        if err != nil {
+            return nil, err
+        }
+        certs = append(certs, &cert)
+    }
+
+    return &PaginatedQueryResult{
+        Records:             certs,
+        FetchedRecordsCount: responseMetadata.FetchedRecordsCount,
+        Bookmark:            responseMetadata.Bookmark,
+    }, nil
 }
-defer resultsIterator.Close()
 
-var certs []*Certificate
-for resultsIterator.HasNext() {
-	queryResponse, err := resultsIterator.Next()
-	if err != nil {
-		return nil, err
-	}
-
-	var cert Certificate
-	err = json.Unmarshal(queryResponse.Value, &cert)
-	if err != nil {
-		return nil, err
-	}
-	certs = append(certs, &cert)
-}
-
-return certs, nil
+// تعريف هيكل البيانات المطلوب للرد المقسم
+type PaginatedQueryResult struct {
+    Records             []*Certificate `json:"records"`
+    FetchedRecordsCount int32          `json:"fetchedRecordsCount"`
+    Bookmark            string         `json:"bookmark"`
 }
 // 5. دالة التحقق من الوجود
 func (s *SmartContract) CertificateExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
