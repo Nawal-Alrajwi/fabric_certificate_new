@@ -1,19 +1,19 @@
 package chaincode
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/sha3" // استخدام SHA-3 المتطورة
-	"encoding/hex"
 
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
+	"golang.org/x/crypto/sha3" // استخدام SHA-3 المتطورة لمنافسة SHA-256
 )
 
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// الهيكل المطور للشهادة
+// الهيكل المطور للشهادة (يتضمن البصمة الرقمية)
 type Certificate struct {
 	ID          string `json:"ID"`
 	StudentName string `json:"StudentName"`
@@ -22,17 +22,17 @@ type Certificate struct {
 	IssueDate   string `json:"IssueDate"`
 	Grade       string `json:"Grade"`
 	IssuerID    string `json:"IssuerID"`
-	CertHash    string `json:"CertHash"` // حقل البصمة الرقمية الجديد
+	CertHash    string `json:"CertHash"` // الحقل المضاف لتقليل زمن التحقق
 }
 
-// دالة داخلية لتوليد بصمة SHA-3
+// دالة داخلية لتوليد بصمة SHA-3 (Keccak-256)
 func calculateSHA3Hash(data string) string {
 	hash := sha3.New256()
 	hash.Write([]byte(data))
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-// IssueCertificate المطور
+// 1. إضافة شهادة جديدة مع توليد بصمة SHA-3
 func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInterface, id string, studentName string, major string, university string, issueDate string, grade string, issuerID string) error {
 	exists, err := s.CertificateExists(ctx, id)
 	if err != nil {
@@ -42,7 +42,7 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 		return fmt.Errorf("الشهادة ذات الرقم %s موجودة مسبقاً", id)
 	}
 
-	// دمج البيانات لتوليد البصمة
+	// دمج البيانات لتوليد البصمة الفريدة
 	combinedData := fmt.Sprintf("%s%s%s%s", id, studentName, university, issueDate)
 	certHash := calculateSHA3Hash(combinedData)
 
@@ -65,11 +65,25 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 	return ctx.GetStub().PutState(id, certJSON)
 }
 
-// VerifyCertificate المطور (لتقليل الـ Latency)
+// 2. دالة الحذف (Revoke) - المعالجة الأساسية لنقاط الفشل في تقريرك
+func (s *SmartContract) DeleteAsset(ctx contractapi.TransactionContextInterface, id string) error {
+	exists, err := s.CertificateExists(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("الشهادة %s غير موجودة ولا يمكن حذفها", id)
+	}
+
+	// حذف الحالة من السجل (Ledger)
+	return ctx.GetStub().DelState(id)
+}
+
+// 3. التحقق السريع من الشهادة (اثبات تفوق زمن الاستجابة)
 func (s *SmartContract) VerifyCertificate(ctx contractapi.TransactionContextInterface, id string, providedData string) (bool, error) {
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
-		return false, fmt.Errorf("فشل في قراءة بيانات الحالة: %v", err)
+		return false, fmt.Errorf("فشل في قراءة البيانات: %v", err)
 	}
 	if certJSON == nil {
 		return false, fmt.Errorf("الشهادة %s غير موجودة", id)
@@ -81,12 +95,38 @@ func (s *SmartContract) VerifyCertificate(ctx contractapi.TransactionContextInte
 		return false, err
 	}
 
-	// التحقق السريع عبر مقارنة بصمة البيانات المدخلة مع البصمة المخزنة
+	// مقارنة البصمة المدخلة مع البصمة المخزنة SHA-3
 	currentHash := calculateSHA3Hash(providedData)
 	return cert.CertHash == currentHash, nil
 }
 
-// CertificateExists دالة مساعدة
+// 4. استعلام عن كل الشهادات (لمعالجة فشل جولة Query All)
+func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
+	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	var certs []*Certificate
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var cert Certificate
+		err = json.Unmarshal(queryResponse.Value, &cert)
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, &cert)
+	}
+
+	return certs, nil
+}
+
+// 5. دالة التحقق من الوجود
 func (s *SmartContract) CertificateExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
