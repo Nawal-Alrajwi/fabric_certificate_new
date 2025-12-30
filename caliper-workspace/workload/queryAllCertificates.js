@@ -4,30 +4,31 @@ const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
 
 /**
  * فئة عبء العمل للاستعلام عن الشهادات باستخدام تقنية التقسيم (Pagination).
- * تم تطوير هذا الملف لرفع كفاءة استرجاع بيانات SHA-3 وحل مشكلة بطء الاستجابة.
+ * تم تطوير هذا الملف لحل مشكلة Timeout التي ظهرت في التقرير السابق عند 100 TPS.
  */
 class QueryAllCertificatesWorkload extends WorkloadModuleBase {
     constructor() {
         super();
+        // يمكن إضافة متغيرات هنا إذا كنت ترغب في تتبع العلامة المرجعية (bookmark)
     }
 
     /**
-    * إرسال طلب استعلام مقسم (Paginated Query) لضمان استقرار الشبكة.
+    * إرسال طلب استعلام مقسم لضمان استقرار الشبكة وكفاءة استرجاع بيانات SHA-3.
     */
     async submitTransaction() {
         const request = {
             contractId: 'basic',
-            // 1. التعديل: استخدام اسم الدالة المطورة في العقد الذكي
+            // التعديل 1: استخدام اسم الدالة الجديدة في العقد الذكي التي تدعم Pagination
             contractFunction: 'GetAllAssetsWithPagination', 
             
-            // 2. التعديل: إرسال حجم الصفحة '50' كمعامل أول، وعلامة مرجعية فارغة كمعامل ثانٍ
-            // حجم الصفحة 50 يضمن بقاء زمن الاستجابة منخفضاً جداً (Latency < 0.1s)
+            // التعديل 2: إرسال المعاملات المطلوبة (pageSize و bookmark)
+            // نحدد pageSize بـ '50' لتقليل حجم البيانات المسترجعة في كل طلب ومنع انهيار الذاكرة
             contractArguments: ['50', ''], 
             
             readOnly: true
         };
 
-        // إرسال الطلب عبر SUT Adapter
+        // إرسال الطلب عبر محول النظام تحت الاختبار (SUT Adapter)
         await this.sutAdapter.sendRequests(request);
     }
 }
