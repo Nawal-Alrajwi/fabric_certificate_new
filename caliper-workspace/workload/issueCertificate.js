@@ -10,18 +10,26 @@ class IssueCertificateWorkload extends WorkloadModuleBase {
 
     async submitTransaction() {
         this.txIndex++;
-        // معرف موحد نستخدمه في جميع المراحل
-        const certID = `cert_${this.workerIndex}_${this.txIndex}`;
+        
+        // إنشاء بيانات تجريبية فريدة لكل عملية إصدار
+        const certID = `CERT_${this.workerIndex}_${this.txIndex}`;
+        const studentName = `Student_${this.workerIndex}_${this.txIndex}`;
+        const degree = 'Bachelor of Computer Science';
+        const issuer = 'Digital University';
+        // محاكاة بصمة رقمية (Hash) فريدة
+        const certHash = Buffer.from(certID + studentName).toString('hex'); 
+        const issueDate = '2026-01-02';
 
         const request = {
-            contractId: 'basic',
-            contractFunction: 'CreateAsset',
+            contractId: 'basic', // تأكد أن هذا الاسم يطابق اسم العقد في ملف التكوين
+            contractFunction: 'IssueCertificate', // اسم الدالة الجديدة في Go
             contractArguments: [
-                certID,                     // ID
-                'Student ' + this.txIndex,  // Name
-                95,                         // Grade (INT required)
-                'Blockchain 101',           // Course
-                2025                        // Year (INT required)
+                certID,       // ID
+                studentName,  // studentName
+                degree,       // degree
+                issuer,       // issuer
+                certHash,     // certHash
+                issueDate     // issueDate
             ],
             readOnly: false
         };
