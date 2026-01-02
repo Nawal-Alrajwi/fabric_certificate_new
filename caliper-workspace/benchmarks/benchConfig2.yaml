@@ -1,0 +1,56 @@
+test:
+  name: comparative-tps-scaling-test
+  description: اختبار التوسع المباشر من 50 إلى 200 TPS لمقارنة النتائج مع الدراسات المرجعية.
+  workers:
+    type: local
+    number: 2
+  rounds:
+    # المرحلة 1: 50 TPS
+    - label: Issue-Cert-50TPS
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 50
+      workload:
+        module: workload/issueCertificate.js
+
+    # المرحلة 2: 100 TPS
+    - label: Issue-Cert-100TPS
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 100
+      workload:
+        module: workload/issueCertificate.js
+
+    # المرحلة 3: 150 TPS
+    - label: Issue-Cert-150TPS
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 150
+      workload:
+        module: workload/issueCertificate.js
+
+    # المرحلة 4: 200 TPS (المرحلة الحاسمة)
+    - label: Issue-Cert-200TPS
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 200
+      workload:
+        module: workload/issueCertificate.js
+
+    # جولة تحقق إضافية عند أقصى ضغط لإثبات كفاءة SHA-3
+    - label: Verify-Cert-At-200TPS
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 200
+      workload:
+        module: workload/verifyCertificate.js

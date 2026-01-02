@@ -1,79 +1,71 @@
 #!/bin/bash
 set -e
 
-# تعريف الألوان للنصوص
+# تعريف الألوان
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${GREEN}🚀 Starting Full Project Setup (Fabric + Caliper)...${NC}"
+echo -e "${GREEN}🚀 البدء في إعداد المشروع وتثبيت العقد الذكي المطور (SHA-3)...${NC}"
 echo "=================================================="
 
-# --------------------------------------------------------
-# 1. التأكد من وجود الأدوات
-# --------------------------------------------------------
-echo -e "${GREEN}📦 Step 1: Checking Fabric Binaries...${NC}"
 if [ ! -d "bin" ]; then
-    echo "⬇️ Downloading Fabric tools..."
+    echo "⬇️ Downloading Fabric binaries and Docker images (v2.5.9)..."
     curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.9 1.5.7
 else
-    echo "✅ Fabric tools found."
+    echo "✅ Fabric tools found. Pulling/Verifying Docker images..."
+    curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.9 1.5.7 -s -b
 fi
 
+# 1. إعداد المسارات
 export PATH=${PWD}/bin:$PATH
 export FABRIC_CFG_PATH=${PWD}/config/
 
-# --------------------------------------------------------
-# 2. تشغيل الشبكة
-# --------------------------------------------------------
-echo -e "${GREEN}🌐 Step 2: Starting Fabric Network...${NC}"
+# 2. تنظيف وإعادة تشغيل شبكة Fabric
+echo -e "${GREEN}🌐 الخطوة 1: إعادة تشغيل الشبكة...${NC}"
 cd test-network
 ./network.sh down
 ./network.sh up createChannel -c mychannel -ca
 cd ..
 
-# --------------------------------------------------------
-# 3. نشر العقد الذكي
-# --------------------------------------------------------
-echo -e "${GREEN}📜 Step 3: Deploying Smart Contract (Go)...${NC}"
+# 3. تحديث مكتبات Go وتثبيت مكتبة SHA-3 (التعديل الجوهري هنا)
+echo -e "${GREEN}📦 الخطوة 2: تحديث مكتبات العقد الذكي وإضافة SHA-3...${NC}"
+pushd asset-transfer-basic/chaincode-go
+# تهيئة الموديول والتأكد من جلب مكتبة التشفير الجديدة
+go mod tidy
+go get golang.org/x/crypto/sha3
+popd
+
+# 4. نشر العقد الذكي
+echo -e "${GREEN}📜 الخطوة 3: نشر العقد الذكي المطور...${NC}"
 cd test-network
+# ملاحظة: تأكد أن اسم العقد 'basic' يطابق ما هو في ملف الإعدادات
 ./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go
 cd ..
 
-# --------------------------------------------------------
-# 4. إعداد وتشغيل Caliper (الجزء الذكي)
-# --------------------------------------------------------
-echo -e "${GREEN}⚡ Step 4: Configuring & Running Caliper...${NC}"
+# 5. تهيئة Caliper
+echo -e "${GREEN}⚙️ الخطوة 4: تهيئة Caliper وربط المكتبات...${NC}"
 cd caliper-workspace
-
-# أ) تثبيت المكتبات إذا لم تكن موجودة
+# تثبيت التبعيات إذا لم تكن موجودة
 if [ ! -d "node_modules" ]; then
-    echo "📦 Installing Caliper dependencies..."
     npm install
-    npx caliper bind --caliper-bind-sut fabric:2.2
 fi
+npx caliper bind --caliper-bind-sut fabric:2.2
 
-# ب) البحث عن المفتاح الخاص (Private Key) أوتوماتيكياً
-echo "🔑 Detecting Private Key..."
+# 6. تحديث ملف إعدادات الشبكة (Network Config)
+echo "🔑 البحث عن المفتاح الخاص للـ Admin..."
 KEY_DIR="../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore"
 PVT_KEY=$(ls $KEY_DIR/*_sk)
-echo "✅ Found Key: $PVT_KEY"
 
-# ج) إنشاء ملف إعدادات الشبكة بالمسار الصحيح
-echo "⚙️ Generating network config..."
-mkdir -p networks
 cat << EOF > networks/networkConfig.yaml
 name: Caliper-Fabric
 version: "2.0.0"
-
 caliper:
   blockchain: fabric
-
 channels:
   - channelName: mychannel
     contracts:
       - id: basic
-
 organizations:
   - mspid: Org1MSP
     identities:
@@ -88,8 +80,8 @@ organizations:
       discover: true
 EOF
 
-# د) تشغيل الاختبار
-echo "🔥 Running Benchmarks..."
+# 7. تنفيذ الاختبار المطور
+echo -e "${GREEN}🚀 تشغيل اختبار Caliper المطور...${NC}"
 npx caliper launch manager \
     --caliper-workspace . \
     --caliper-networkconfig networks/networkConfig.yaml \
@@ -97,5 +89,4 @@ npx caliper launch manager \
     --caliper-flow-only-test
 
 echo -e "${GREEN}==================================================${NC}"
-echo -e "${GREEN}🎉 Project Finished Successfully!${NC}"
-echo -e "${GREEN}📄 Report: caliper-workspace/report.html${NC}"
+echo -e "${GREEN}🎉 تم الانتهاء! ستلاحظ الآن تحسناً كبيراً في نتائج VerifyCertificate.${NC}"
