@@ -10,7 +10,7 @@ test:
       description: Issuing new digital certificates (using IssueCertificate).
       txDuration: 30
       rateControl:
-        type: fixed-load
+        type: fixed-rate
         opts:
           tps: 50
       workload:
@@ -21,7 +21,7 @@ test:
       description: Verifying certificate authenticity and hash (using VerifyCertificate).
       txDuration: 30
       rateControl:
-        type: fixed-load
+        type: fixed-rate
         opts:
           tps: 50
       workload:
@@ -32,7 +32,7 @@ test:
       description: Browsing all stored certificates on the ledger (using QueryAllCertificates).
       txDuration: 30
       rateControl:
-        type: fixed-load
+        type: fixed-rate
         opts:
           tps: 50
       workload:
@@ -43,7 +43,7 @@ test:
       description: Revoking existing certificates to mark them as invalid (using RevokeCertificate).
       txDuration: 30
       rateControl:
-        type: fixed-load
+        type: fixed-rate
         opts:
           tps: 50
       workload:
