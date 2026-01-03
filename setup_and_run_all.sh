@@ -1,5 +1,14 @@
 #!/bin/bash
 set -e
+# 1. مسح أي حاويات أو شبكات قديمة متبقية بالقوة
+docker rm -f $(docker ps -aq) || true
+docker volume prune -f
+
+# 2. مسح التقارير القديمة للتأكد أن التقرير الناتج هو الجديد
+rm -f caliper-workspace/report.html
+
+# 3. التأكد من تحديث الـ Workspace
+cd caliper-workspace && rm -rf networks/networkConfig.yaml && cd ..
 
 # تعريف الألوان للنصوص
 GREEN='\033[0;32m'
