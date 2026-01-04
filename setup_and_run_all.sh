@@ -5,6 +5,7 @@ set -e
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
+echo -e "nawal2"
 
 echo -e "${GREEN}🚀 Starting Full Project Setup (Fabric + Caliper)...${NC}"
 echo "=================================================="
@@ -87,7 +88,7 @@ organizations:
       path: '../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml'
       discover: true
 EOF
-
+echo -e "nawal2"
 # د) تشغيل الاختبار
 echo "🔥 Running Benchmarks..."
 npx caliper launch manager \
