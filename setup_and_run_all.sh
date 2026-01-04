@@ -88,7 +88,7 @@ organizations:
       path: '../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml'
       discover: true
 EOF
-
+echo -e "nawal2"
 # د) تشغيل الاختبار
 echo "🔥 Running Benchmarks..."
 npx caliper launch manager \
