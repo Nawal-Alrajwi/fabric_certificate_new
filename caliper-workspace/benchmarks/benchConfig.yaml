@@ -7,7 +7,7 @@ test:
   rounds:
     - label: Issue Certificates
       description: Issuing new certificates (using CreateAsset).
-      txNumber: 20
+      txNumber: 30
       rateControl:
         type: fixed-load
         opts:
@@ -17,7 +17,7 @@ test:
 
     - label: Verify a Certificate
       description: Verifying certificates exist (using ReadAsset).
-      txNumber: 20
+      txNumber: 30
       rateControl:
         type: fixed-load
         opts:
@@ -27,7 +27,7 @@ test:
 
     - label: Query All Certificates
       description: Browsing all certificates (using GetAllAssets).
-      txNumber: 5
+      txNumber: 10
       rateControl:
         type: fixed-load
         opts:
@@ -37,7 +37,7 @@ test:
 
     - label: Revoke Certificate
       description: Revoking/Deleting certificates (using DeleteAsset).
-      txNumber: 20
+      txNumber: 30
       rateControl:
         type: fixed-load
         opts:
