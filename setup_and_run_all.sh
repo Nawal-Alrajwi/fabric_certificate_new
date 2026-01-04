@@ -5,6 +5,7 @@ set -e
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
+echo -e "nawal2"
 
 echo -e "${GREEN}🚀 Starting Full Project Setup (Fabric + Caliper)...${NC}"
 echo "=================================================="
