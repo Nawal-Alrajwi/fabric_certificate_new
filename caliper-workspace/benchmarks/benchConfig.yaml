@@ -1,50 +1,46 @@
 test:
   name: certificate-benchmark-test
-  description: Test issuing, verifying, and revoking certificates_new_branch
+  description: Test issuing, verifying, and revoking certificates.
   workers:
     type: local
     number: 2
   rounds:
-    # 1. جولة إصدار الشهادات
     - label: Issue Certificates
-      description: Issuing new digital certificates (using IssueCertificate).
-      txDuration: 30
+      description: Issuing new certificates (using CreateAsset).
+      txNumber: 30
       rateControl:
-        type: fixed-rate
+        type: fixed-load
         opts:
-          tps: 50
+          transactionLoad: 2
       workload:
         module: workload/issueCertificate.js
 
-    # 2. جولة التحقق من الشهادات
     - label: Verify a Certificate
-      description: Verifying certificate authenticity and hash (using VerifyCertificate).
-      txDuration: 30
+      description: Verifying certificates exist (using ReadAsset).
+      txNumber: 30
       rateControl:
-        type: fixed-rate
+        type: fixed-load
         opts:
-          tps: 50
+          transactionLoad: 2
       workload:
         module: workload/verifyCertificate.js
 
-    # 3. جولة الاستعلام الشامل
     - label: Query All Certificates
-      description: Browsing all stored certificates on the ledger (using QueryAllCertificates).
-      txDuration: 30
+      description: Browsing all certificates (using GetAllAssets).
+      txNumber: 10
       rateControl:
-        type: fixed-rate
+        type: fixed-load
         opts:
-          tps: 50
+          transactionLoad: 1
       workload:
         module: workload/queryAllCertificates.js
 
-    # 4. جولة إلغاء الشهادات
     - label: Revoke Certificate
-      description: Revoking existing certificates to mark them as invalid (using RevokeCertificate).
-      txDuration: 30
+      description: Revoking/Deleting certificates (using DeleteAsset).
+      txNumber: 30
       rateControl:
-        type: fixed-rate
+        type: fixed-load
         opts:
-          tps: 50
+          transactionLoad: 2
       workload:
         module: workload/revokeCertificate.js
