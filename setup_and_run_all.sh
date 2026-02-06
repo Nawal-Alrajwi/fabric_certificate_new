@@ -1,11 +1,16 @@
 #!/bin/bash
 set -e
-# تشغيل سكربت إصلاح الصلاحيات إن وُجد
-if [ -x "./scripts/fix-permissions.sh" ]; then
-  echo "🔐 Running scripts/fix-permissions.sh to fix permissions..."
-  ./scripts/fix-permissions.sh || true
+# تشغيل سكربت إصلاح الصلاحيات فقط في بيئة CI أو عند طلب صريح عبر FIX_PERMISSIONS
+# يمكن فرض التشغيل محليًا بتشغيل: FIX_PERMISSIONS=true ./setup_and_run_all.sh
+if [ "${CI:-}" = "true" ] || [ "${CI:-}" = "1" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "${FIX_PERMISSIONS:-}" = "true" ]; then
+  if [ -x "./scripts/fix-permissions.sh" ]; then
+    echo "🔐 Running scripts/fix-permissions.sh to fix permissions (CI or FIX_PERMISSIONS set)..."
+    ./scripts/fix-permissions.sh || true
+  else
+    echo "⚠️ scripts/fix-permissions.sh not found or not executable. Skipping."
+  fi
 else
-  echo "ℹ️ scripts/fix-permissions.sh not found or not executable. Skipping."
+  echo "ℹ️ Not in CI and FIX_PERMISSIONS not set; skipping permission fix."
 fi
 # 1. مسح أي حاويات أو شبكات قديمة متبقية بالقوة
 docker rm -f $(docker ps -aq) || true
