@@ -20,6 +20,21 @@ Organization peers and an ordering service node. You can use it on your local ma
 You can also use it to deploy and test your own Fabric chaincodes and applications. To get started, see
 the [test network tutorial](https://hyperledger-fabric.readthedocs.io/en/latest/test_network.html).
 
+## Permission fixes for CI and local runs
+
+If you encounter permission or executable-bit issues (especially when running in CI or after checking out on different platforms), this repository provides an optional helper script to normalise permissions before running the setup:
+
+- `scripts/fix-permissions.sh` — sets directories to `755`, makes `*.sh` files executable and marks them executable in the Git index.
+
+Usage:
+
+```bash
+# Run only when needed (or CI sets `CI=true` automatically)
+FIX_PERMISSIONS=true ./setup_and_run_all.sh
+```
+
+The `setup_and_run_all.sh` script will also run `scripts/fix-permissions.sh` automatically when it detects common CI indicators (`CI`, `GITHUB_ACTIONS`) or when `FIX_PERMISSIONS=true` is set.
+
 The [Kubernetes Test Network](test-network-k8s) sample builds upon the Compose network, constructing a Fabric
 network with peer, orderer, and CA infrastructure nodes running on Kubernetes.  In addition to providing a sample
 Kubernetes guide, the Kube test network can be used as a platform to author and debug _cloud ready_ Fabric Client
