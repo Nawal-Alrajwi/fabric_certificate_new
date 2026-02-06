@@ -1,8 +1,29 @@
 #!/bin/bash
 set -e
+# تشغيل سكربت إصلاح الصلاحيات إن وُجد
+if [ -x "./scripts/fix-permissions.sh" ]; then
+  echo "🔐 Running scripts/fix-permissions.sh to fix permissions..."
+  ./scripts/fix-permissions.sh || true
+else
+  echo "ℹ️ scripts/fix-permissions.sh not found or not executable. Skipping."
+fi
 # 1. مسح أي حاويات أو شبكات قديمة متبقية بالقوة
 docker rm -f $(docker ps -aq) || true
 docker volume prune -f
+
+# --------------------------------------------------------
+# Deep Clean: إزالة صور Docker التي تبدأ بـ dev-* أو dev-peer*
+# هذا يضمن بناء صور العقد الذكي الجديدة بدلاً من إعادة استخدام القديمة
+# --------------------------------------------------------
+echo -e "\n🧹 Performing deep-clean for Docker images starting with dev-*..."
+# جمع معرفات الصور المطابقة
+DEV_IMAGE_IDS=$(docker images --format '{{.Repository}} {{.ID}}' | awk '$1 ~ /^(dev-|dev-peer)/ {print $2}' || true)
+if [ -n "$DEV_IMAGE_IDS" ]; then
+  echo "Found dev images: $DEV_IMAGE_IDS"
+  docker rmi -f $DEV_IMAGE_IDS || true
+else
+  echo "No dev-* images found."
+fi
 
 # 2. مسح التقارير القديمة للتأكد أن التقرير الناتج هو الجديد
 rm -f caliper-workspace/report.html
@@ -99,6 +120,8 @@ EOF
 
 # د) تشغيل الاختبار
 echo "🔥 Running Benchmarks..."
+echo "BenchConfig SHA256:"
+sha256sum benchmarks/benchConfig.yaml || true
 npx caliper launch manager \
     --caliper-workspace . \
     --caliper-networkconfig networks/networkConfig.yaml \
