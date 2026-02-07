@@ -10,18 +10,20 @@ class IssueCertificateWorkload extends WorkloadModuleBase {
 
     async submitTransaction() {
         this.txIndex++;
-        // معرف موحد نستخدمه في جميع المراحل
-        const certID = `cert_${this.workerIndex}_${this.txIndex}`;
-
+        // إنشاء معرف فريد للشهادة
+        const certID = `Cert_${this.workerIndex}_${this.txIndex}`;
+        
+        // محاكاة بيانات الشهادة بناءً على هيكل الـ Certificate في العقد
         const request = {
-            contractId: 'basic',
-            contractFunction: 'CreateAsset',
+            contractId: 'basic', // تأكد أن هذا الاسم يطابق اسم العقد في ملف config.yaml
+            contractFunction: 'IssueCertificate', // تغيير الاسم ليطابق عقد الشهائد
             contractArguments: [
                 certID,                     // ID
-                'Student ' + this.txIndex,  // Name
-                95,                         // Grade (INT required)
-                'Blockchain 101',           // Course
-                2025                        // Year (INT required)
+                'Student Name ' + this.txIndex, // StudentName
+                'PhD in Computer Science',  // Degree
+                'Sana\'a University',       // Issuer
+                '2026-02-07',               // IssueDate
+                'hash_value_' + this.txIndex // CertHash (تمثيل لبصمة الملف)
             ],
             readOnly: false
         };
