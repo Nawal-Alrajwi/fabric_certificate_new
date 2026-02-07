@@ -2,17 +2,18 @@
 
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
 
-class QueryAllWorkload extends WorkloadModuleBase {
+class QueryAllCertificatesWorkload extends WorkloadModuleBase {
     constructor() {
         super();
     }
 
     async submitTransaction() {
         const request = {
-            contractId: 'basic',
-            contractFunction: 'GetAllAssets',
+            contractId: 'basic', 
+            // يجب أن يتطابق الاسم مع الدالة في كود Go (التي أسميناها GetAllCertificates)
+            contractFunction: 'GetAllCertificates', 
             contractArguments: [],
-            readOnly: true
+            readOnly: true // العمليات التي تقرأ فقط من قاعدة البيانات تكون true
         };
 
         await this.sutAdapter.sendRequests(request);
@@ -20,7 +21,7 @@ class QueryAllWorkload extends WorkloadModuleBase {
 }
 
 function createWorkloadModule() {
-    return new QueryAllWorkload();
+    return new QueryAllCertificatesWorkload();
 }
 
 module.exports.createWorkloadModule = createWorkloadModule;
