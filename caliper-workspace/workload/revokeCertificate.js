@@ -10,14 +10,15 @@ class RevokeCertificateWorkload extends WorkloadModuleBase {
 
     async submitTransaction() {
         this.txIndex++;
-        // نحذف نفس الشهادة التي تم إنشاؤها
-        const certID = `cert_${this.workerIndex}_${this.txIndex}`;
+        
+        // ملاحظة هامة: يجب أن يكون certID مطابقاً للشهادات التي تم إصدارها في مرحلة الـ Create
+        const certID = `Cert_${this.workerIndex}_${this.txIndex}`;
 
         const request = {
             contractId: 'basic',
-            contractFunction: 'DeleteAsset',
-            contractArguments: [certID],
-            readOnly: false
+            contractFunction: 'RevokeCertificate', // التغيير هنا ليطابق دالة الإلغاء في العقد
+            contractArguments: [certID],           // الدالة تتوقع فقط الـ ID
+            readOnly: false                        // هذه عملية تحديث (Write) لذا تكون false
         };
 
         await this.sutAdapter.sendRequests(request);
