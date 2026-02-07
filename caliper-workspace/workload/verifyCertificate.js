@@ -10,14 +10,16 @@ class VerifyCertificateWorkload extends WorkloadModuleBase {
 
     async submitTransaction() {
         this.txIndex++;
-        // نبحث عن نفس الشهادة التي أصدرناها في الخطوة السابقة
-        const certID = `cert_${this.workerIndex}_${this.txIndex}`;
+        
+        // تأكد أن نمط التسمية (Cert_) يطابق ما استخدمته في دالة الإصدار
+        const certID = `Cert_${this.workerIndex}_${this.txIndex}`;
 
         const request = {
             contractId: 'basic',
-            contractFunction: 'ReadAsset',
+            // التعديل هنا: يجب أن يكون ReadCertificate
+            contractFunction: 'ReadCertificate', 
             contractArguments: [certID],
-            readOnly: true
+            readOnly: true // عمليات القراءة والتحقق هي Read-only
         };
 
         await this.sutAdapter.sendRequests(request);
