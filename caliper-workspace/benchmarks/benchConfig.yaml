@@ -1,6 +1,6 @@
 test:
   name: certificate-benchmark-test
-  description: Test issuing, verifying, and revoking certificates_new_branch with 250 TPS
+  description: Test issuing, verifying, and revoking certificates_new_branch with 250 TPS_new2
   workers:
     type: local
     number: 2
