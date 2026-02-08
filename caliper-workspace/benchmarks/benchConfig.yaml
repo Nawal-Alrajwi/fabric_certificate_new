@@ -1,46 +1,58 @@
 test:
   name: certificate-benchmark-test
-  description: Test issuing, verifying, and revoking certificates.
+  description: Test issuing, verifying, and revoking certificates_new_branch with 250 TPS
   workers:
     type: local
     number: 2
   rounds:
+    # 1. جولة إصدار الشهادات
     - label: Issue Certificates
-      description: Issuing new certificates (using CreateAsset).
-      txNumber: 30
+      description: Issuing new digital certificates (using IssueCertificate).
+      txDuration: 30
       rateControl:
-        type: fixed-load
+        type: fixed-rate
         opts:
-          transactionLoad: 2
+          tps: 250
       workload:
         module: workload/issueCertificate.js
+        arguments:
+          contractId: basic
 
+    # 2. جولة التحقق من الشهادات
     - label: Verify a Certificate
-      description: Verifying certificates exist (using ReadAsset).
-      txNumber: 30
+      description: Verifying certificate authenticity and hash (using VerifyCertificate).
+      txDuration: 30
       rateControl:
-        type: fixed-load
+        type: fixed-rate
         opts:
-          transactionLoad: 2
+          tps: 250
       workload:
         module: workload/verifyCertificate.js
+        arguments:
+          contractId: basic
 
+    # 3. جولة الاستعلام الشامل
     - label: Query All Certificates
-      description: Browsing all certificates (using GetAllAssets).
-      txNumber:10
+      description: Browsing all stored certificates on the ledger (using QueryAllCertificates).
+      txDuration: 30
       rateControl:
-        type: fixed-load
+        type: fixed-rate
         opts:
-          transactionLoad: 1
+          tps: 250
       workload:
         module: workload/queryAllCertificates.js
+        arguments:
+          contractId: basic
 
+    # 4. جولة إلغاء الشهادات
     - label: Revoke Certificate
-      description: Revoking/Deleting certificates (using DeleteAsset).
-      txNumber: 20
+      description: Revoking existing certificates to mark them as invalid (using RevokeCertificate).
+      txDuration: 30
       rateControl:
-        type: fixed-load
+        type: fixed-rate
         opts:
-          transactionLoad: 2
+          tps: 250
       workload:
         module: workload/revokeCertificate.js
+        arguments:
+          contractId: basic
