@@ -66,7 +66,8 @@ cd test-network
 ./network.sh down
 ./network.sh up createChannel -c mychannel -ca
 cd ..
-
+go mod tidy
+go mod vendor
 # --------------------------------------------------------
 # 3. نشر العقد الذكي
 # --------------------------------------------------------
