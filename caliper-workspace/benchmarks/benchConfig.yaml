@@ -3,7 +3,7 @@ test:
   description: Test issuing, verifying, and revoking certificates_new_branch
   workers:
     type: local
-    number: 2
+    number: 4
   rounds:
     # 1. جولة إصدار الشهادات
     - label: Issue Certificates
