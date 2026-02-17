@@ -11,7 +11,10 @@ type SmartContract struct {
 	contractapi.Contract
 }
 
-// Certificate تعريف هيكل الشهادة
+// ============================================================
+// 📜 Certificate Structure
+// ============================================================
+
 type Certificate struct {
 	CertHash    string `json:"CertHash"`
 	Degree      string `json:"Degree"`
@@ -22,9 +25,9 @@ type Certificate struct {
 	StudentName string `json:"StudentName"`
 }
 
-///////////////////////////////////////////////////////////
+// ============================================================
 // 🔐 MSP-Based RBAC Helper
-///////////////////////////////////////////////////////////
+// ============================================================
 
 func (s *SmartContract) getClientMSP(ctx contractapi.TransactionContextInterface) (string, error) {
 	clientIdentity := ctx.GetClientIdentity()
@@ -37,11 +40,12 @@ func (s *SmartContract) getClientMSP(ctx contractapi.TransactionContextInterface
 	return mspID, nil
 }
 
-///////////////////////////////////////////////////////////
-// 1️⃣ IssueCertificate (Org1 Only)
-///////////////////////////////////////////////////////////
+// ============================================================
+// 1️⃣ IssueCertificate  (Org1 Only)
+// ============================================================
 
-func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInterface,
+func (s *SmartContract) IssueCertificate(
+	ctx contractapi.TransactionContextInterface,
 	id string,
 	studentName string,
 	degree string,
@@ -61,7 +65,8 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 	// -------------------
 
 	// Validation
-	if id == "" || studentName == "" || degree == "" || issuer == "" || certHash == "" || issueDate == "" {
+	if id == "" || studentName == "" || degree == "" ||
+		issuer == "" || certHash == "" || issueDate == "" {
 		return fmt.Errorf("جميع الحقول مطلوبة")
 	}
 
@@ -92,9 +97,9 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 	return ctx.GetStub().PutState(id, certJSON)
 }
 
-///////////////////////////////////////////////////////////
+// ============================================================
 // 2️⃣ QueryAllCertificates (Open Read)
-///////////////////////////////////////////////////////////
+// ============================================================
 
 func (s *SmartContract) QueryAllCertificates(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
 
@@ -124,9 +129,9 @@ func (s *SmartContract) QueryAllCertificates(ctx contractapi.TransactionContextI
 	return certificates, nil
 }
 
-///////////////////////////////////////////////////////////
+// ============================================================
 // 3️⃣ RevokeCertificate (Org2 Only)
-///////////////////////////////////////////////////////////
+// ============================================================
 
 func (s *SmartContract) RevokeCertificate(ctx contractapi.TransactionContextInterface, id string) error {
 
@@ -164,11 +169,12 @@ func (s *SmartContract) RevokeCertificate(ctx contractapi.TransactionContextInte
 	return ctx.GetStub().PutState(id, certJSON)
 }
 
-///////////////////////////////////////////////////////////
+// ============================================================
 // 4️⃣ VerifyCertificate (Open Read)
-///////////////////////////////////////////////////////////
+// ============================================================
 
-func (s *SmartContract) VerifyCertificate(ctx contractapi.TransactionContextInterface,
+func (s *SmartContract) VerifyCertificate(
+	ctx contractapi.TransactionContextInterface,
 	id string,
 	certHash string) (bool, error) {
 
@@ -176,4 +182,46 @@ func (s *SmartContract) VerifyCertificate(ctx contractapi.TransactionContextInte
 		return false, fmt.Errorf("المعرف والبصمة مطلوبة")
 	}
 
-	cert, err := s.ReadCe
+	cert, err := s.ReadCertificate(ctx, id)
+	if err != nil {
+		return false, nil
+	}
+
+	isValid := cert.CertHash == certHash && !cert.IsRevoked
+
+	return isValid, nil
+}
+
+// ============================================================
+// 🔎 Helper Functions
+// ============================================================
+
+func (s *SmartContract) ReadCertificate(ctx contractapi.TransactionContextInterface, id string) (*Certificate, error) {
+
+	certJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if certJSON == nil {
+		return nil, fmt.Errorf("الشهادة غير موجودة")
+	}
+
+	var cert Certificate
+	err = json.Unmarshal(certJSON, &cert)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cert, nil
+}
+
+func (s *SmartContract) CertificateExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+
+	certJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, err
+	}
+
+	return certJSON != nil, nil
+}
