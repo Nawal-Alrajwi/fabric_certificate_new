@@ -58,21 +58,104 @@ fi
 export PATH=${PWD}/bin:$PATH
 export FABRIC_CFG_PATH=${PWD}/config/
 
-# --------------------------------------------------------
-# 2. تشغيل الشبكة
-# --------------------------------------------------------
-echo -e "${GREEN}🌐 Step 2: Starting Fabric Network...${NC}"
+# 1. تشغيل الشبكة
 cd test-network
 ./network.sh down
 ./network.sh up createChannel -c mychannel -ca
 cd ..
 
+# 2. نشر العقد الذكي
+echo "📜 Deploying Smart Contract..."
+cd test-network
+./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go
+cd ..
+
+# 3. تشغيل Caliper
+cd caliper-workspace
+
+if [ ! -d "node_modules" ]; then
+    npm install
+    npx caliper bind --caliper-bind-sut fabric:2.2
+fi
+
+echo "🔑 Detecting Private Keys..."
+
+# Org1 Key
+KEY_DIR1="../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore"
+PVT_KEY1=$(ls $KEY_DIR1/*_sk)
+
+# Org2 Key
+KEY_DIR2="../test-network/organizations/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/keystore"
+PVT_KEY2=$(ls $KEY_DIR2/*_sk)
+
+echo "Org1 Key: $PVT_KEY1"
+echo "Org2 Key: $PVT_KEY2"
+
+mkdir -p networks
+
+cat << EOF > networks/networkConfig.yaml
+name: Caliper-Fabric
+version: "2.0.0"
+
+caliper:
+  blockchain: fabric
+
+channels:
+  - channelName: mychannel
+    contracts:
+      - id: basic
+
+organizations:
+  - mspid: Org1MSP
+    identities:
+      certificates:
+        - name: User1
+          clientPrivateKey:
+            path: $PVT_KEY1
+          clientSignedCert:
+            path: ../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/cert.pem
+    connectionProfile:
+      path: ../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml
+      discover: true
+
+  - mspid: Org2MSP
+    identities:
+      certificates:
+        - name: User1
+          clientPrivateKey:
+            path: $PVT_KEY2
+          clientSignedCert:
+            path: ../test-network/organizations/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/cert.pem
+    connectionProfile:
+      path: ../test-network/organizations/peerOrganizations/org2.example.com/connection-org2.yaml
+      discover: true
+EOF
+
+echo "🔥 Running Benchmark..."
+
+npx caliper launch manager \
+    --caliper-workspace . \
+    --caliper-networkconfig networks/networkConfig.yaml \
+    --caliper-benchconfig benchmarks/benchConfig.yaml \
+    --caliper-flow-only-test
+
+echo "✅ Finished. Report at caliper-workspace/report.html"
+
+# --------------------------------------------------------
+# 2. تشغيل الشبكة
+# --------------------------------------------------------
+#echo -e "${GREEN}🌐 Step 2: Starting Fabric Network...${NC}"
+#cd test-network
+#./network.sh down
+#./network.sh up createChannel -c mychannel -ca
+#cd ..
+
 # --------------------------------------------------------
 # 3. نشر العقد الذكي
 # --------------------------------------------------------
-echo -e "${GREEN}📜 Step 3: Deploying Smart Contract (Go)...${NC}"
-cd test-network
-./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go
+#echo -e "${GREEN}📜 Step 3: Deploying Smart Contract (Go)...${NC}"
+#cd test-network
+#./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go
 cd ..
 
 # --------------------------------------------------------
@@ -122,7 +205,6 @@ organizations:
       path: '../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml'
       discover: true
 EOF
-
 # د) تشغيل الاختبار
 echo "🔥 Running Benchmarks..."
 echo "BenchConfig SHA256:"
