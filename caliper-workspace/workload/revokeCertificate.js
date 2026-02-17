@@ -3,6 +3,7 @@
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
 
 class RevokeCertificateWorkload extends WorkloadModuleBase {
+
     constructor() {
         super();
         this.txIndex = 0;
@@ -10,12 +11,13 @@ class RevokeCertificateWorkload extends WorkloadModuleBase {
 
     async submitTransaction() {
         this.txIndex++;
-        // نحذف نفس الشهادة التي تم إنشاؤها
-        const certID = `cert_${this.workerIndex}_${this.txIndex}`;
+
+        // نفس ID المستخدم في Issue
+        const certID = `CERT_${this.workerIndex}_${this.txIndex}`;
 
         const request = {
             contractId: 'basic',
-            contractFunction: 'DeleteAsset',
+            contractFunction: 'RevokeCertificate',
             contractArguments: [certID],
             readOnly: false
         };
