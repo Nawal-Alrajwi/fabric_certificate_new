@@ -67,3 +67,18 @@ test:
       module: workload/revokeCertificate.js
     txOptions:
       invokerIdentity: User1@org2.example.com
+        # ------------------------------------------------
+  # 5️⃣ Unauthorized Revoke Attempt (Should Fail)
+  # ------------------------------------------------
+  - label: Unauthorized Revoke Attempt
+    description: Org1 tries to revoke (expected to fail due to RBAC)
+    txDuration: 30
+    rateControl:
+      type: fixed-rate
+      opts:
+        tps: 50
+    workload:
+      module: workload/revokeCertificate.js
+    txOptions:
+      invokerIdentity: User1@org1.example.com
+
