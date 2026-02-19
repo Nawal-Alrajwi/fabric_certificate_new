@@ -7,14 +7,20 @@ class RevokeCertificateWorkload extends WorkloadModuleBase {
     constructor() {
         super();
         this.txIndex = 0;
+        this.maxIssuedPerWorker = 1000; // عدد تقريبي تم إنشاؤه في Round Issue
     }
 
     async submitTransaction() {
 
         this.txIndex++;
 
-        // يجب أن تكون الشهادة موجودة من مرحلة Issue
-        const certID = `CERT_${this.workerIndex}_${this.txIndex}`;
+        const workerId = this.workerIndex || 0;
+
+        // اختيار ID موجود فعليًا داخل النطاق
+        const randomIndex =
+            (this.txIndex % this.maxIssuedPerWorker) + 1;
+
+        const certID = `CERT_${workerId}_${randomIndex}`;
 
         const request = {
             contractId: 'basic',
