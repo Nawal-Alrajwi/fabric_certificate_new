@@ -24,7 +24,7 @@ test:
       invokerIdentity: User1@org1.example.com
 
   # ------------------------------------------------
-  # 2️⃣ Verify Certificates (Read Only - Org1)
+  # 2️⃣ Verify Certificates
   # ------------------------------------------------
   - label: Verify Certificate
     description: Verifying certificate authenticity
@@ -39,7 +39,7 @@ test:
       invokerIdentity: User1@org1.example.com
 
   # ------------------------------------------------
-  # 3️⃣ Query All Certificates (Read Only - Org1)
+  # 3️⃣ Query All Certificates
   # ------------------------------------------------
   - label: Query All Certificates
     description: Reading all certificates
@@ -54,10 +54,10 @@ test:
       invokerIdentity: User1@org1.example.com
 
   # ------------------------------------------------
-  # 4️⃣ Revoke Certificate (Org2 Only - RBAC Enforced)
+  # 4️⃣ Authorized Revoke (Org2)
   # ------------------------------------------------
-  - label: Revoke Certificate
-    description: Org2 revokes certificates
+  - label: Authorized Revoke
+    description: Org2 revokes certificates (should succeed)
     txDuration: 30
     rateControl:
       type: fixed-rate
@@ -67,11 +67,12 @@ test:
       module: workload/revokeCertificate.js
     txOptions:
       invokerIdentity: User1@org2.example.com
-        # ------------------------------------------------
-  # 5️⃣ Unauthorized Revoke Attempt (Should Fail)
+
+  # ------------------------------------------------
+  # 5️⃣ Unauthorized Revoke Attempt (RBAC Test)
   # ------------------------------------------------
   - label: Unauthorized Revoke Attempt
-    description: Org1 tries to revoke (expected to fail due to RBAC)
+    description: Org1 tries to revoke (should fail)
     txDuration: 30
     rateControl:
       type: fixed-rate
@@ -81,4 +82,3 @@ test:
       module: workload/revokeCertificate.js
     txOptions:
       invokerIdentity: User1@org1.example.com
-
