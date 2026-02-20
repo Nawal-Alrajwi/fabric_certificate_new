@@ -61,6 +61,8 @@ export FABRIC_CFG_PATH=${PWD}/config/
 # 1. تشغيل الشبكة
 cd test-network
 ./network.sh down
+docker volume prune -f
+docker system prune -f
 ./network.sh up createChannel -c mychannel -ca -s couchdb
 cd ..
 
