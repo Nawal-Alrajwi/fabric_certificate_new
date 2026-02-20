@@ -1,6 +1,6 @@
 'use strict';
-
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
+const crypto = require('crypto'); // أضفنا مكتبة التشفير
 
 class IssueCertificateWorkload extends WorkloadModuleBase {
     constructor() {
@@ -11,35 +11,23 @@ class IssueCertificateWorkload extends WorkloadModuleBase {
     async submitTransaction() {
         this.txIndex++;
         
-        // إنشاء بيانات تجريبية فريدة لكل عملية إصدار
         const certID = `CERT_${this.workerIndex}_${this.txIndex}`;
         const studentName = `Student_${this.workerIndex}_${this.txIndex}`;
         const degree = 'Bachelor of Computer Science';
         const issuer = 'Digital University';
-        // محاكاة بصمة رقمية (Hash) فريدة
-        const certHash = Buffer.from(certID + studentName).toString('hex'); 
-        const issueDate = '2026-01-02';
+        // محاكاة بصمة رقمية حقيقية لزيادة مصداقية الاختبار
+        const certHash = crypto.createHash('sha256').update(certID + studentName).digest('hex'); 
+        const issueDate = new Date().toISOString().split('T')[0]; // تاريخ اليوم آلياً
 
         const request = {
-            contractId: 'basic', // تأكد أن هذا الاسم يطابق اسم العقد في ملف التكوين
-            contractFunction: 'IssueCertificate', // اسم الدالة الجديدة في Go
-            contractArguments: [
-                certID,       // ID
-                studentName,  // studentName
-                degree,       // degree
-                issuer,       // issuer
-                certHash,     // certHash
-                issueDate     // issueDate
-            ],
+            contractId: 'basic', 
+            contractFunction: 'IssueCertificate', 
+            contractArguments: [certID, studentName, degree, issuer, certHash, issueDate],
             readOnly: false
         };
 
-        await this.sutAdapter.sendRequests(request);
+        return this.sutAdapter.sendRequests(request); // تأكد من إرجاع الطلب للمحول
     }
 }
 
-function createWorkloadModule() {
-    return new IssueCertificateWorkload();
-}
-
-module.exports.createWorkloadModule = createWorkloadModule;
+module.exports = { createWorkloadModule: () => new IssueCertificateWorkload() };
