@@ -4,35 +4,27 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hyperledger/fabric-chaincode-go/pkg/statebased"
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
+// SmartContract structure
 type SmartContract struct {
 	contractapi.Contract
 }
 
 // Certificate structure
 type Certificate struct {
-	CertHash    string `json:"CertHash"`
-	Degree      string `json:"Degree"`
 	ID          string `json:"ID"`
-	IsRevoked   bool   `json:"IsRevoked"`
-	IssueDate   string `json:"IssueDate"`
-	Issuer      string `json:"Issuer"`
 	StudentName string `json:"StudentName"`
+	Degree      string `json:"Degree"`
+	Issuer      string `json:"Issuer"`
+	IssueDate   string `json:"IssueDate"`
+	CertHash    string `json:"CertHash"`
+	IsRevoked   bool   `json:"IsRevoked"`
 }
 
 ///////////////////////////////////////////////////////////
-// 🔐 Helper: Get MSP ID (RBAC)
-///////////////////////////////////////////////////////////
-
-func (s *SmartContract) getClientMSP(ctx contractapi.TransactionContextInterface) (string, error) {
-	return ctx.GetClientIdentity().GetMSPID()
-}
-
-///////////////////////////////////////////////////////////
-// 1️⃣ IssueCertificate (RBAC + SBE)
+// 1️⃣ IssueCertificate
 ///////////////////////////////////////////////////////////
 
 func (s *SmartContract) IssueCertificate(
@@ -44,16 +36,6 @@ func (s *SmartContract) IssueCertificate(
 	issueDate string,
 	certHash string) error {
 
-	// 🔐 RBAC (Org-Level Only)
-	mspID, err := s.getClientMSP(ctx)
-	if err != nil {
-		return err
-	}
-	if mspID != "Org1MSP" {
-		return fmt.Errorf("only Org1 can issue certificates")
-	}
-
-	// Check if certificate already exists
 	existing, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return fmt.Errorf("failed to read world state: %v", err)
@@ -77,33 +59,11 @@ func (s *SmartContract) IssueCertificate(
 		return err
 	}
 
-	// Store in public world state
-	err = ctx.GetStub().PutState(id, certJSON)
-	if err != nil {
-		return err
-	}
-
-	// 🔐 State-Based Endorsement (Only Org1 can modify)
-	ep, err := statebased.NewStateEP(nil)
-	if err != nil {
-		return err
-	}
-
-	err = ep.AddOrgs(statebased.RoleTypePeer, "Org1MSP")
-	if err != nil {
-		return err
-	}
-
-	policy, err := ep.Policy()
-	if err != nil {
-		return err
-	}
-
-	return ctx.GetStub().SetStateValidationParameter(id, policy)
+	return ctx.GetStub().PutState(id, certJSON)
 }
 
 ///////////////////////////////////////////////////////////
-// 2️⃣ VerifyCertificate (Read-Only)
+// 2️⃣ VerifyCertificate
 ///////////////////////////////////////////////////////////
 
 func (s *SmartContract) VerifyCertificate(
@@ -130,4 +90,19 @@ func (s *SmartContract) VerifyCertificate(
 	}
 
 	return certificate.CertHash == providedHash, nil
+}
+
+///////////////////////////////////////////////////////////
+// Main
+///////////////////////////////////////////////////////////
+
+func main() {
+	chaincode, err := contractapi.NewChaincode(new(SmartContract))
+	if err != nil {
+		panic(fmt.Sprintf("Error creating chaincode: %v", err))
+	}
+
+	if err := chaincode.Start(); err != nil {
+		panic(fmt.Sprintf("Error starting chaincode: %v", err))
+	}
 }
