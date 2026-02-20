@@ -1,6 +1,7 @@
 'use strict';
 
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
+const crypto = require('crypto'); // استخدام مكتبة التشفير لمحاكاة الواقع
 
 class VerifyCertificateWorkload extends WorkloadModuleBase {
     constructor() {
@@ -11,30 +12,22 @@ class VerifyCertificateWorkload extends WorkloadModuleBase {
     async submitTransaction() {
         this.txIndex++;
         
-        // يجب أن يتطابق نمط المعرف مع ما تم إصداره في ملف issueCertificate.js
         const certID = `CERT_${this.workerIndex}_${this.txIndex}`;
         const studentName = `Student_${this.workerIndex}_${this.txIndex}`;
         
-        // إعادة توليد نفس الـ Hash الذي استخدمناه عند الإصدار لمحاكاة عملية تحقق ناجحة
-        const certHash = Buffer.from(certID + studentName).toString('hex');
+        // توليد الهاش باستخدام SHA-256 ليطابق عملية الإصدار
+        const certHash = crypto.createHash('sha256').update(certID + studentName).digest('hex');
 
         const request = {
             contractId: 'basic',
-            // استدعاء دالة التحقق الذكية التي كتبناها في Go
             contractFunction: 'VerifyCertificate', 
-            contractArguments: [
-                certID, 
-                certHash
-            ],
-            readOnly: true // التحقق هو عملية قراءة ولا يغير في حالة البلوكشين
+            contractArguments: [certID, certHash],
+            readOnly: true 
         };
 
-        await this.sutAdapter.sendRequests(request);
+        // إرجاع النتيجة لمحرك Caliper لتسجيلها في التقرير النهائي
+        return this.sutAdapter.sendRequests(request);
     }
 }
 
-function createWorkloadModule() {
-    return new VerifyCertificateWorkload();
-}
-
-module.exports.createWorkloadModule = createWorkloadModule;
+module.exports.createWorkloadModule = () => new VerifyCertificateWorkload();
