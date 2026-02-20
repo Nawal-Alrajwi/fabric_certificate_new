@@ -3,33 +3,63 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/hyperledger/fabric-chaincode-go/pkg/statebased"
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-// Certificate تعريف هيكل الشهادة كما قدمته
-type Certificate struct {
-	CertHash    string `json:"CertHash"`    
-	Degree      string `json:"Degree"`      
-	ID          string `json:"ID"`          
-	IsRevoked   bool   `json:"IsRevoked"`   
-	IssueDate   string `json:"IssueDate"`   
-	Issuer      string `json:"Issuer"`      
-	StudentName string `json:"StudentName"` 
-}
-
-// SmartContract defines the structure for our chaincode
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// IssueCertificate إصدار شهادة جديدة وإضافتها إلى World State
-func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInterface, id string, studentName string, degree string, issuer string, issueDate string, certHash string) error {
-	exists, err := s.CertificateExists(ctx, id)
+// Certificate structure
+type Certificate struct {
+	CertHash    string `json:"CertHash"`
+	Degree      string `json:"Degree"`
+	ID          string `json:"ID"`
+	IsRevoked   bool   `json:"IsRevoked"`
+	IssueDate   string `json:"IssueDate"`
+	Issuer      string `json:"Issuer"`
+	StudentName string `json:"StudentName"`
+}
+
+///////////////////////////////////////////////////////////
+// 🔐 Helper: Get MSP ID (RBAC)
+///////////////////////////////////////////////////////////
+
+func (s *SmartContract) getClientMSP(ctx contractapi.TransactionContextInterface) (string, error) {
+	return ctx.GetClientIdentity().GetMSPID()
+}
+
+///////////////////////////////////////////////////////////
+// 1️⃣ IssueCertificate (RBAC + SBE)
+///////////////////////////////////////////////////////////
+
+func (s *SmartContract) IssueCertificate(
+	ctx contractapi.TransactionContextInterface,
+	id string,
+	studentName string,
+	degree string,
+	issuer string,
+	issueDate string,
+	certHash string) error {
+
+	// 🔐 RBAC (Org-Level Only)
+	mspID, err := s.getClientMSP(ctx)
 	if err != nil {
 		return err
 	}
-	if exists {
-		return fmt.Errorf("الشهادة ذات الرقم %s موجودة مسبقاً", id)
+	if mspID != "Org1MSP" {
+		return fmt.Errorf("only Org1 can issue certificates")
+	}
+
+	// Check if certificate already exists
+	existing, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return fmt.Errorf("failed to read world state: %v", err)
+	}
+	if existing != nil {
+		return fmt.Errorf("certificate %s already exists", id)
 	}
 
 	certificate := Certificate{
@@ -39,7 +69,7 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 		Issuer:      issuer,
 		IssueDate:   issueDate,
 		CertHash:    certHash,
-		IsRevoked:   false, // الشهادة فعالة عند الإصدار
+		IsRevoked:   false,
 	}
 
 	certJSON, err := json.Marshal(certificate)
@@ -47,76 +77,57 @@ func (s *SmartContract) IssueCertificate(ctx contractapi.TransactionContextInter
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, certJSON)
+	// Store in public world state
+	err = ctx.GetStub().PutState(id, certJSON)
+	if err != nil {
+		return err
+	}
+
+	// 🔐 State-Based Endorsement (Only Org1 can modify)
+	ep, err := statebased.NewStateEP(nil)
+	if err != nil {
+		return err
+	}
+
+	err = ep.AddOrgs(statebased.RoleTypePeer, "Org1MSP")
+	if err != nil {
+		return err
+	}
+
+	policy, err := ep.Policy()
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().SetStateValidationParameter(id, policy)
 }
 
-// ReadCertificate قراءة بيانات شهادة معينة باستخدام الرقم التسلسلي
-func (s *SmartContract) ReadCertificate(ctx contractapi.TransactionContextInterface, id string) (*Certificate, error) {
+///////////////////////////////////////////////////////////
+// 2️⃣ VerifyCertificate (Read-Only)
+///////////////////////////////////////////////////////////
+
+func (s *SmartContract) VerifyCertificate(
+	ctx contractapi.TransactionContextInterface,
+	id string,
+	providedHash string) (bool, error) {
+
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
-		return nil, fmt.Errorf("فشل في القراءة من world state: %v", err)
+		return false, fmt.Errorf("failed to read world state: %v", err)
 	}
 	if certJSON == nil {
-		return nil, fmt.Errorf("الشهادة %s غير موجودة", id)
+		return false, fmt.Errorf("certificate %s does not exist", id)
 	}
 
 	var certificate Certificate
 	err = json.Unmarshal(certJSON, &certificate)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	return &certificate, nil
-}
-
-// RevokeCertificate إلغاء صلاحية شهادة (بدلاً من الحذف، يفضل تغيير الحالة في الأنظمة الأكاديمية)
-func (s *SmartContract) RevokeCertificate(ctx contractapi.TransactionContextInterface, id string) error {
-	certificate, err := s.ReadCertificate(ctx, id)
-	if err != nil {
-		return err
+	if certificate.IsRevoked {
+		return false, nil
 	}
 
-	certificate.IsRevoked = true
-	certJSON, err := json.Marshal(certificate)
-	if err != nil {
-		return err
-	}
-
-	return ctx.GetStub().PutState(id, certJSON)
-}
-
-// CertificateExists للتأكد من وجود الشهادة
-func (s *SmartContract) CertificateExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	certJSON, err := ctx.GetStub().GetState(id)
-	if err != nil {
-		return false, fmt.Errorf("فشل في قراءة world state: %v", err)
-	}
-
-	return certJSON != nil, nil
-}
-
-// GetAllCertificates استرجاع كافة الشهائد المسجلة في النظام
-func (s *SmartContract) GetAllCertificates(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
-	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-	if err != nil {
-		return nil, err
-	}
-	defer resultsIterator.Close()
-
-	var certificates []*Certificate
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
-		}
-
-		var certificate Certificate
-		err = json.Unmarshal(queryResponse.Value, &certificate)
-		if err != nil {
-			return nil, err
-		}
-		certificates = append(certificates, &certificate)
-	}
-
-	return certificates, nil
+	return certificate.CertHash == providedHash, nil
 }
