@@ -9,7 +9,7 @@ test:
 
     # 🔹 Issue – 100 TPS
     - label: Issue-100TPS
-      txDuration: 60
+      txDuration: 30
       rateControl:
         type: fixed-rate
         opts:
@@ -21,7 +21,7 @@ test:
 
     # 🔹 Issue – 200 TPS
     - label: Issue-200TPS
-      txDuration: 60
+      txDuration: 30
       rateControl:
         type: fixed-rate
         opts:
@@ -33,7 +33,7 @@ test:
 
     # 🔹 Verify – 100 TPS
     - label: Verify-100TPS
-      txDuration: 60
+      txDuration: 30
       rateControl:
         type: fixed-rate
         opts:
@@ -45,7 +45,7 @@ test:
 
     # 🔹 Verify – 200 TPS
     - label: Verify-200TPS
-      txDuration: 60
+      txDuration: 30
       rateControl:
         type: fixed-rate
         opts:
