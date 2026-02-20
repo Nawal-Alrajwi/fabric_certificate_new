@@ -3,7 +3,7 @@ test:
   description: Performance evaluation of issuing and verifying digital certificates
   workers:
     type: local
-    number: 2   # تقليل العمال لتكون أقرب لاختبارات أكاديمية قياسية
+    number: 4   # تقليل العمال لتكون أقرب لاختبارات أكاديمية قياسية
 
   rounds:
 
