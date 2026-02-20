@@ -61,7 +61,7 @@ export FABRIC_CFG_PATH=${PWD}/config/
 # 1. تشغيل الشبكة
 cd test-network
 ./network.sh down
-./network.sh up createChannel -c mychannel -ca
+./network.sh up createChannel -c mychannel -ca -s couchdb
 cd ..
 
 # 2. نشر العقد الذكي
