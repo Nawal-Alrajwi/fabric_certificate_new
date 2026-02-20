@@ -3,17 +3,16 @@
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
 
 class QueryAllCertificatesWorkload extends WorkloadModuleBase {
-
     async submitTransaction() {
-
         const request = {
             contractId: 'basic',
-            contractFunction: 'QueryAllCertificates',  // ✔️ مطابق للعقد
+            contractFunction: 'QueryAllCertificates', 
             contractArguments: [],
             readOnly: true
         };
 
-        await this.sutAdapter.sendRequests(request);
+        // استخدام return لضمان قياس زمن الاستجابة (Latency) بدقة
+        return this.sutAdapter.sendRequests(request);
     }
 }
 
