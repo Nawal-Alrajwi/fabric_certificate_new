@@ -3,19 +3,14 @@
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
 
 class RevokeCertificateWorkload extends WorkloadModuleBase {
-
     constructor() {
         super();
         this.txIndex = 0;
     }
 
     async submitTransaction() {
-
         this.txIndex++;
-
         const workerId = this.workerIndex || 0;
-
-        // استخدم نفس التسلسل الذي استخدم في Issue
         const certID = `CERT_${workerId}_${this.txIndex}`;
 
         const request = {
@@ -25,12 +20,9 @@ class RevokeCertificateWorkload extends WorkloadModuleBase {
             readOnly: false
         };
 
-        await this.sutAdapter.sendRequests(request);
+        // تحسين: استخدام return لضمان قياس زمن الكمون (Latency) الفعلي للمعاملة
+        return this.sutAdapter.sendRequests(request);
     }
 }
 
-function createWorkloadModule() {
-    return new RevokeCertificateWorkload();
-}
-
-module.exports.createWorkloadModule = createWorkloadModule;
+module.exports.createWorkloadModule = () => new RevokeCertificateWorkload();
