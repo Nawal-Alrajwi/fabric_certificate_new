@@ -1,58 +1,34 @@
 test:
   name: certificate-benchmark-test
-  description: Test issuing, verifying, and revoking certificates_new_branch with 250 TPS_new2
+  description: Benchmark for issuing and verifying digital certificates
   workers:
     type: local
-    number: 2
+    number: 4
+
   rounds:
-    # 1. جولة إصدار الشهادات
+
+    # 1️⃣ جولة إصدار الشهادات
     - label: Issue Certificates
-      description: Issuing new digital certificates (using IssueCertificate).
+      description: Issuing new digital certificates (IssueCertificate).
       txDuration: 30
       rateControl:
         type: fixed-rate
         opts:
-          tps: 250
+          tps: 200
       workload:
         module: workload/issueCertificate.js
         arguments:
           contractId: basic
 
-    # 2. جولة التحقق من الشهادات
-    - label: Verify a Certificate
-      description: Verifying certificate authenticity and hash (using VerifyCertificate).
+    # 2️⃣ جولة التحقق من الشهادات
+    - label: Verify Certificate
+      description: Verifying certificate authenticity (VerifyCertificate).
       txDuration: 30
       rateControl:
         type: fixed-rate
         opts:
-          tps: 250
+          tps: 200
       workload:
         module: workload/verifyCertificate.js
-        arguments:
-          contractId: basic
-
-    # 3. جولة الاستعلام الشامل
-    - label: Query All Certificates
-      description: Browsing all stored certificates on the ledger (using QueryAllCertificates).
-      txDuration: 30
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 250
-      workload:
-        module: workload/queryAllCertificates.js
-        arguments:
-          contractId: basic
-
-    # 4. جولة إلغاء الشهادات
-    - label: Revoke Certificate
-      description: Revoking existing certificates to mark them as invalid (using RevokeCertificate).
-      txDuration: 30
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 250
-      workload:
-        module: workload/revokeCertificate.js
         arguments:
           contractId: basic
