@@ -39,19 +39,7 @@ test:
       invokerIdentity: User1@org1.example.com
 
   # ------------------------------------------------
-  # 3️⃣ Query All Certificates
-  # ------------------------------------------------
-  - label: Query All Certificates
-    description: Reading all certificates
-    txDuration: 30
-    rateControl:
-      type: fixed-rate
-      opts:
-        tps: 50
-    workload:
-      module: workload/queryAllCertificates.js
-    txOptions:
-      invokerIdentity: User1@org1.example.com
+
 
   # ------------------------------------------------
   # 4️⃣ Authorized Revoke (Org2)
