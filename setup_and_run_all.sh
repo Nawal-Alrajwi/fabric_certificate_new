@@ -69,7 +69,7 @@ cd ..
 # 2. نشر العقد الذكي
 echo "📜 Deploying Smart Contract with AND Policy..."
 cd test-network
-./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go -ccep "AND('Org1MSP.peer','Org2MSP.peer')"
+./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go -ccep "OR('Org1MSP.peer','Org2MSP.peer')"
 cd ..
 
 # 3. تشغيل Caliper
