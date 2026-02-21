@@ -92,13 +92,12 @@ PVT_KEY2=$(ls $KEY_DIR2/*_sk)
 
 echo "Org1 Key: $PVT_KEY1"
 echo "Org2 Key: $PVT_KEY2"
-
+# ج) إنشاء ملف إعدادات الشبكة بتنسيق YAML صحيح ومسارات دقيقة
+echo "⚙️ Generating network config..."
 mkdir -p networks
-
 cat << EOF > networks/networkConfig.yaml
 name: Caliper-Fabric
 version: "2.0.0"
-
 caliper:
   blockchain: fabric
 
@@ -111,25 +110,25 @@ organizations:
   - mspid: Org1MSP
     identities:
       certificates:
-        - name: User1
+        - name: 'User1@org1.example.com'
           clientPrivateKey:
-            path: $PVT_KEY1
+            path: '$PVT_KEY1'
           clientSignedCert:
-            path: ../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/cert.pem
+            path: '../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/User1@org1.example.com-cert.pem'
     connectionProfile:
-      path: ../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml
+      path: '../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml'
       discover: true
 
   - mspid: Org2MSP
     identities:
       certificates:
-        - name: User1
+        - name: 'User1@org2.example.com'
           clientPrivateKey:
-            path: $PVT_KEY2
+            path: '$PVT_KEY2'
           clientSignedCert:
-            path: ../test-network/organizations/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/cert.pem
+            path: '../test-network/organizations/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/User1@org2.example.com-cert.pem'
     connectionProfile:
-      path: ../test-network/organizations/peerOrganizations/org2.example.com/connection-org2.yaml
+      path: '../test-network/organizations/peerOrganizations/org2.example.com/connection-org2.yaml'
       discover: true
 EOF
 
