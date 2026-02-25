@@ -7,14 +7,12 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
+// SmartContract defines the structure for our certificate functions
 type SmartContract struct {
 	contractapi.Contract
 }
 
-///////////////////////////////////////////////////////////
-// Certificate Structure
-///////////////////////////////////////////////////////////
-
+// Certificate Structure representing the degree data in CouchDB
 type Certificate struct {
 	CertHash    string `json:"CertHash"`
 	Degree      string `json:"Degree"`
@@ -25,25 +23,17 @@ type Certificate struct {
 	StudentName string `json:"StudentName"`
 }
 
-///////////////////////////////////////////////////////////
-// 🔐 MSP-Based RBAC Helper
-///////////////////////////////////////////////////////////
-
+// Helper: getClientMSP retrieves the organization ID of the caller
 func (s *SmartContract) getClientMSP(ctx contractapi.TransactionContextInterface) (string, error) {
 	clientIdentity := ctx.GetClientIdentity()
-
 	mspID, err := clientIdentity.GetMSPID()
 	if err != nil {
 		return "", fmt.Errorf("failed to read client identity: %v", err)
 	}
-
 	return mspID, nil
 }
 
-///////////////////////////////////////////////////////////
 // 1️⃣ IssueCertificate (Org1 Only)
-///////////////////////////////////////////////////////////
-
 func (s *SmartContract) IssueCertificate(
 	ctx contractapi.TransactionContextInterface,
 	id string,
@@ -53,26 +43,16 @@ func (s *SmartContract) IssueCertificate(
 	certHash string,
 	issueDate string) error {
 
-	// --- RBAC CHECK ---
+	// RBAC CHECK
 	mspID, err := s.getClientMSP(ctx)
-	if err != nil {
-		return err
-	}
-
-	if mspID != "Org1MSP" {
+	if err != nil || mspID != "Org1MSP" {
 		return fmt.Errorf("access denied: only Org1 can issue certificates")
-	}
-	// -------------------
-
-	if id == "" || studentName == "" || degree == "" || issuer == "" || certHash == "" || issueDate == "" {
-		return fmt.Errorf("all fields are required")
 	}
 
 	exists, err := s.CertificateExists(ctx, id)
 	if err != nil {
 		return err
 	}
-
 	if exists {
 		return fmt.Errorf("certificate %s already exists", id)
 	}
@@ -95,59 +75,14 @@ func (s *SmartContract) IssueCertificate(
 	return ctx.GetStub().PutState(id, certJSON)
 }
 
-///////////////////////////////////////////////////////////
-// 2️⃣ QueryAllCertificates (Open Read)
-///////////////////////////////////////////////////////////
-
-func (s *SmartContract) QueryAllCertificates(ctx contractapi.TransactionContextInterface) ([]*Certificate, error) {
-
-	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-	if err != nil {
-		return nil, err
-	}
-	defer resultsIterator.Close()
-
-	var certificates []*Certificate
-
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
-		if err != nil {
-			return nil, err
-		}
-
-		var cert Certificate
-		err = json.Unmarshal(queryResponse.Value, &cert)
-		if err != nil {
-			return nil, err
-		}
-
-		certificates = append(certificates, &cert)
-	}
-
-	return certificates, nil
-}
-
-///////////////////////////////////////////////////////////
-// 3️⃣ RevokeCertificate (Org2 Only)
-///////////////////////////////////////////////////////////
-
+// 2️⃣ RevokeCertificate (Org2 Only)
 func (s *SmartContract) RevokeCertificate(
 	ctx contractapi.TransactionContextInterface,
 	id string) error {
 
-	// --- RBAC CHECK ---
 	mspID, err := s.getClientMSP(ctx)
-	if err != nil {
-		return err
-	}
-
-	if mspID != "Org2MSP" {
+	if err != nil || mspID != "Org2MSP" {
 		return fmt.Errorf("access denied: only Org2 can revoke certificates")
-	}
-	// -------------------
-
-	if id == "" {
-		return fmt.Errorf("certificate ID is required")
 	}
 
 	cert, err := s.ReadCertificate(ctx, id)
@@ -156,11 +91,10 @@ func (s *SmartContract) RevokeCertificate(
 	}
 
 	if cert.IsRevoked {
-		return nil
+		return nil 
 	}
 
 	cert.IsRevoked = true
-
 	certJSON, err := json.Marshal(cert)
 	if err != nil {
 		return err
@@ -169,42 +103,30 @@ func (s *SmartContract) RevokeCertificate(
 	return ctx.GetStub().PutState(id, certJSON)
 }
 
-///////////////////////////////////////////////////////////
-// 4️⃣ VerifyCertificate (Open Read)
-///////////////////////////////////////////////////////////
-
+// 3️⃣ VerifyCertificate (Open Read)
 func (s *SmartContract) VerifyCertificate(
 	ctx contractapi.TransactionContextInterface,
 	id string,
 	certHash string) (bool, error) {
 
-	if id == "" || certHash == "" {
-		return false, fmt.Errorf("certificate ID and hash are required")
-	}
-
 	cert, err := s.ReadCertificate(ctx, id)
 	if err != nil {
-		return false, nil
+		return false, fmt.Errorf("verification failed: certificate not found")
 	}
 
 	isValid := cert.CertHash == certHash && !cert.IsRevoked
-
 	return isValid, nil
 }
 
-///////////////////////////////////////////////////////////
-// Helper Functions
-///////////////////////////////////////////////////////////
-
+// 4️⃣ ReadCertificate (Helper)
 func (s *SmartContract) ReadCertificate(
 	ctx contractapi.TransactionContextInterface,
 	id string) (*Certificate, error) {
 
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read from world state: %v", err)
 	}
-
 	if certJSON == nil {
 		return nil, fmt.Errorf("certificate %s does not exist", id)
 	}
@@ -218,6 +140,7 @@ func (s *SmartContract) ReadCertificate(
 	return &cert, nil
 }
 
+// 5️⃣ CertificateExists (Helper)
 func (s *SmartContract) CertificateExists(
 	ctx contractapi.TransactionContextInterface,
 	id string) (bool, error) {
@@ -226,6 +149,5 @@ func (s *SmartContract) CertificateExists(
 	if err != nil {
 		return false, err
 	}
-
 	return certJSON != nil, nil
 }
