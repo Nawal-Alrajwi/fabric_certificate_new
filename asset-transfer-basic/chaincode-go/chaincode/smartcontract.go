@@ -26,7 +26,7 @@ type Certificate struct {
 }
 
 ///////////////////////////////////////////////////////////
-// MSP Helper
+// MSP Helper (وظيفة مساعدة للتحقق من الهوية)
 ///////////////////////////////////////////////////////////
 
 func (s *SmartContract) getClientMSP(ctx contractapi.TransactionContextInterface) (string, error) {
@@ -47,8 +47,8 @@ func (s *SmartContract) IssueCertificate(
 	studentName string,
 	degree string,
 	issuer string,
-	issueDate string,   // ✅ الترتيب الصحيح
-	certHash string,    // ✅ الترتيب الصحيح
+	issueDate string,
+	certHash string,
 ) error {
 
 	mspID, err := s.getClientMSP(ctx)
@@ -56,19 +56,21 @@ func (s *SmartContract) IssueCertificate(
 		return err
 	}
 
+	// التحقق من الصلاحية: فقط Org1 يمكنه الإصدار
 	if mspID != "Org1MSP" {
 		return fmt.Errorf("access denied: only Org1 can issue certificates")
 	}
 
+	// التأكد من عدم ترك حقول فارغة
 	if id == "" || studentName == "" || degree == "" || issuer == "" || issueDate == "" || certHash == "" {
 		return fmt.Errorf("all fields are required")
 	}
 
+	// التحقق مما إذا كانت الشهادة موجودة مسبقاً لمنع التكرار
 	exists, err := s.CertificateExists(ctx, id)
 	if err != nil {
 		return err
 	}
-
 	if exists {
 		return fmt.Errorf("certificate %s already exists", id)
 	}
@@ -105,6 +107,7 @@ func (s *SmartContract) RevokeCertificate(
 		return err
 	}
 
+	// التحقق من الصلاحية: فقط Org2 يمكنه الإلغاء
 	if mspID != "Org2MSP" {
 		return fmt.Errorf("access denied: only Org2 can revoke certificates")
 	}
@@ -113,14 +116,14 @@ func (s *SmartContract) RevokeCertificate(
 		return fmt.Errorf("certificate ID is required")
 	}
 
-	// ✅ لا نعتبر عدم وجود الشهادة فشل
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return err
 	}
 
+	// معالجة الفشل: يجب إرجاع خطأ إذا كانت الشهادة غير موجودة أصلاً لإلغائها
 	if certJSON == nil {
-		return nil
+		return fmt.Errorf("certificate %s does not exist", id)
 	}
 
 	var cert Certificate
@@ -129,8 +132,9 @@ func (s *SmartContract) RevokeCertificate(
 		return err
 	}
 
+	// إذا كانت الشهادة ملغية بالفعل، لا داعي لتحديثها مرة أخرى
 	if cert.IsRevoked {
-		return nil
+		return nil 
 	}
 
 	cert.IsRevoked = true
@@ -144,7 +148,7 @@ func (s *SmartContract) RevokeCertificate(
 }
 
 ///////////////////////////////////////////////////////////
-// 3️⃣ VerifyCertificate (Open Read)
+// 3️⃣ VerifyCertificate (دالة عامة للتحقق)
 ///////////////////////////////////////////////////////////
 
 func (s *SmartContract) VerifyCertificate(
@@ -163,7 +167,7 @@ func (s *SmartContract) VerifyCertificate(
 	}
 
 	if certJSON == nil {
-		return false, nil
+		return false, nil // الشهادة غير موجودة في السجل
 	}
 
 	var cert Certificate
@@ -172,23 +176,51 @@ func (s *SmartContract) VerifyCertificate(
 		return false, err
 	}
 
+	// التحقق من تطابق الـ Hash وأن الشهادة غير ملغية
 	isValid := cert.CertHash == certHash && !cert.IsRevoked
 	return isValid, nil
 }
 
 ///////////////////////////////////////////////////////////
-// Helper
+// 4️⃣ DeleteCertificate (دالة الحذف المضافة)
+///////////////////////////////////////////////////////////
+
+func (s *SmartContract) DeleteCertificate(
+	ctx contractapi.TransactionContextInterface,
+	id string,
+) error {
+	mspID, err := s.getClientMSP(ctx)
+	if err != nil {
+		return err
+	}
+
+	// تحديد من له صلاحية الحذف (مثلاً Org1)
+	if mspID != "Org1MSP" {
+		return fmt.Errorf("access denied: only Org1 can delete records")
+	}
+
+	exists, err := s.CertificateExists(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("the certificate %s does not exist", id)
+	}
+
+	return ctx.GetStub().DelState(id)
+}
+
+///////////////////////////////////////////////////////////
+// Helper Functions
 ///////////////////////////////////////////////////////////
 
 func (s *SmartContract) CertificateExists(
 	ctx contractapi.TransactionContextInterface,
 	id string,
 ) (bool, error) {
-
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return false, err
 	}
-
 	return certJSON != nil, nil
 }
