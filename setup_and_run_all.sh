@@ -114,7 +114,7 @@ organizations:
           clientPrivateKey:
             path: '$PVT_KEY1'
           clientSignedCert:
-            path: '../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/com-cert.pem'
+            path: '../test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/cert.pem'
     connectionProfile:
       path: '../test-network/organizations/peerOrganizations/org1.example.com/connection-org1.yaml'
       discover: true
