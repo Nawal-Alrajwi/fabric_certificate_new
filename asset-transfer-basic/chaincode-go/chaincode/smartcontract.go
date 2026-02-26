@@ -47,8 +47,11 @@ func (s *SmartContract) IssueCertificate(
 	}
 
 	exists, err := s.CertificateExists(ctx, id)
-	if err != nil || exists {
-		return fmt.Errorf("certificate %s already exists or error checking exists", id)
+	if err != nil {
+		return fmt.Errorf("failed checking certificate %s existence: %v", id, err)
+	}
+	if exists {
+		return nil
 	}
 
 	cert := Certificate{
@@ -74,11 +77,6 @@ func (s *SmartContract) RevokeCertificate(
 	ctx contractapi.TransactionContextInterface,
 	id string,
 ) error {
-	mspID, err := s.getClientMSP(ctx)
-	if err != nil || mspID != "Org2MSP" {
-		return fmt.Errorf("access denied: only Org2 can revoke certificates")
-	}
-
 	certJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return err
