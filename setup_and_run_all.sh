@@ -1,0 +1,80 @@
+#!/bin/bash
+set -e
+
+# تشغيل سكربت إصلاح الصلاحيات فقط في بيئة CI أو عند طلب صريح عبر FIX_PERMISSIONS
+if [ "${CI:-}" = "true" ] || [ "${CI:-}" = "1" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "${FIX_PERMISSIONS:-}" = "true" ]; then
+    if [ -x "./scripts/fix-permissions.sh" ]; then
+        echo "🔐 Running scripts/fix-permissions.sh to fix permissions (CI or FIX_PERMISSIONS set)..."
+        ./scripts/fix-permissions.sh || true
+    else
+        echo "⚠️ scripts/fix-permissions.sh not found or not executable. Skipping."
+    fi
+else
+    echo "ℹ️ Not in CI and FIX_PERMISSIONS not set; skipping permission fix."
+fi
+
+# مسح أي حاويات أو شبكات قديمة متبقية بالقوة
+docker rm -f $(docker ps -aq) || true
+docker volume prune -f
+
+# Deep Clean: إزالة صور Docker التي تبدأ بـ dev-* أو dev-peer*
+echo -e "\n🧹 Performing deep-clean for Docker images starting with dev-..."
+DEV_IMAGE_IDS=$(docker images --format '{{.Repository}} {{.ID}}' | awk '$1 ~ /^(dev-|dev-peer)/ {print $2}' || true)
+if [ -n "$DEV_IMAGE_IDS" ]; then
+    echo "Found dev images: $DEV_IMAGE_IDS"
+    docker rmi -f $DEV_IMAGE_IDS || true
+else
+    echo "No dev- images found."
+fi
+
+# مسح التقارير القديمة للتأكد من نظافة البيئة قبل البدء
+rm -f caliper-workspace/report.html
+
+# تعريف الألوان للنصوص
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+echo -e "${GREEN}🚀 Starting Network Setup and Smart Contract Deployment...${NC}"
+echo "=================================================="
+echo "📋 Smart Contract Functions to be deployed:"
+echo "   1️⃣  IssueCertificate     (Org1 Only)"
+echo "   2️⃣  VerifyCertificate    (Public Read)"
+echo "   3️⃣  QueryAllCertificates (Public Read)"
+echo "   4️⃣  RevokeCertificate    (Org2 Auth)"
+echo "   5️⃣  CertificateExists    (Helper)"
+echo "=================================================="
+
+# التأكد من وجود أدوات Fabric
+echo -e "${GREEN}📦 Step 1: Checking Fabric Binaries...${NC}"
+if [ ! -d "bin" ]; then
+    echo "⬇️ Downloading Fabric tools..."
+    curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.9 1.5.7
+else
+    echo "✅ Fabric tools found."
+fi
+export PATH=${PWD}/bin:$PATH
+export FABRIC_CFG_PATH=${PWD}/config/
+
+# تشغيل الشبكة
+echo -e "${GREEN}🌐 Step 2: Starting Test Network...${NC}"
+cd test-network
+./network.sh down
+docker volume prune -f
+./network.sh up createChannel -c mychannel -ca -s couchdb
+
+# انتظار استقرار CouchDB والخدمات
+echo "⏳ Waiting 30 seconds for nodes to stabilize..."
+sleep 30
+
+# نشر العقد الذكي
+echo -e "${GREEN}📜 Step 3: Deploying Smart Contract...${NC}"
+./network.sh deployCC -ccn basic -ccp ../asset-transfer-basic/chaincode-go -ccl go -ccep "OR('Org1MSP.peer','Org2MSP.peer')"
+cd ..
+
+echo "=================================================="
+echo -e "${GREEN}✅ Network is ready and Smart Contract is deployed!${NC}"
+echo -e "🚀 Now you can run Caliper using:"
+echo -e "   cd caliper-workspace"
+echo -e "   chmod +x fix_and_run_caliper.sh"
+echo -e "   ./fix_and_run_caliper.sh"
+echo "=================================================="

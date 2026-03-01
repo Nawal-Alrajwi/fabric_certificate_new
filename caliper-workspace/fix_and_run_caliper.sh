@@ -72,17 +72,10 @@ if [ -z "$ORG1_KEY" ] || [ ! -f "$ORG1_KEY" ]; then
 fi
 echo "   ✅ Org1 Key  : $ORG1_KEY"
 
-# Dynamic cert discovery — handles both CA-generated and cryptogen certs
-ORG1_SIGNCERTS_DIR="$ROOT_DIR/test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts"
-ORG1_CERT=$(find "$ORG1_SIGNCERTS_DIR" -name "*.pem" -type f 2>/dev/null | head -n 1)
-if [ -z "$ORG1_CERT" ] || [ ! -f "$ORG1_CERT" ]; then
-    # Fallback: try com-cert.pem pattern used by CA bootstrap
-    ORG1_CERT="$ORG1_SIGNCERTS_DIR/User1@org1.example.com-cert.pem"
-    if [ ! -f "$ORG1_CERT" ]; then
-        echo "❌ ERROR: Org1 certificate not found in $ORG1_SIGNCERTS_DIR"
-        echo "   Run: ls $ORG1_SIGNCERTS_DIR/  to see available certs."
-        exit 1
-    fi
+ORG1_CERT="$ROOT_DIR/test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/User1@org1.example.com-cert.pem"
+if [ ! -f "$ORG1_CERT" ]; then
+    echo "❌ ERROR: Org1 certificate not found at $ORG1_CERT"
+    exit 1
 fi
 echo "   ✅ Org1 Cert : $ORG1_CERT"
 
@@ -100,16 +93,11 @@ if [ -z "$ORG2_KEY" ] || [ ! -f "$ORG2_KEY" ]; then
     ORG2_KEY="$ORG1_KEY"
     ORG2_CERT="$ORG1_CERT"
 else
-    # Dynamic cert discovery for Org2
-    ORG2_SIGNCERTS_DIR="$ROOT_DIR/test-network/organizations/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts"
-    ORG2_CERT=$(find "$ORG2_SIGNCERTS_DIR" -name "*.pem" -type f 2>/dev/null | head -n 1)
-    if [ -z "$ORG2_CERT" ] || [ ! -f "$ORG2_CERT" ]; then
-        ORG2_CERT="$ORG2_SIGNCERTS_DIR/User1@org2.example.com-cert.pem"
-        if [ ! -f "$ORG2_CERT" ]; then
-            echo "⚠️  WARNING: Org2 certificate not found — falling back to Org1."
-            ORG2_KEY="$ORG1_KEY"
-            ORG2_CERT="$ORG1_CERT"
-        fi
+    ORG2_CERT="$ROOT_DIR/test-network/organizations/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/User1@org2.example.com-cert.pem"
+    if [ ! -f "$ORG2_CERT" ]; then
+        echo "⚠️  WARNING: Org2 certificate not found — falling back to Org1."
+        ORG2_KEY="$ORG1_KEY"
+        ORG2_CERT="$ORG1_CERT"
     fi
     echo "   ✅ Org2 Key  : $ORG2_KEY"
     echo "   ✅ Org2 Cert : $ORG2_CERT"
